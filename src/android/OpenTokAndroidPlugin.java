@@ -28,6 +28,7 @@ import android.util.Log;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
+import android.hardware.camera2.CameraManager;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -45,6 +46,7 @@ import com.opentok.android.Stream.StreamVideoType;
 import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
 import com.opentok.android.BaseVideoRenderer;
+import com.opentok.android.BaseVideoCapturer;
 
 public class OpenTokAndroidPlugin extends CordovaPlugin
         implements  Session.SessionListener,
@@ -527,6 +529,39 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         streamHasAudio = new HashMap<String, Boolean>();
         streamHasVideo = new HashMap<String, Boolean>();
         streamVideoDimensions = new HashMap<String, JSONObject>();
+
+        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            manager.registerAvailabilityCallback(new CameraManager.AvailabilityCallback() {
+                @Override
+                public void onCameraAvailable(String cameraId) {
+                    super.onCameraAvailable(cameraId);
+                    if(myPublisher != null && myPublisher.mPublisher != null) {
+                        BaseVideoCapturer bvc = myPublisher.mPublisher.getCapturer();
+                        if (bvc != null) {
+                            if (bvc.isCaptureStarted() == false) {
+                                bvc.init();
+                                bvc.startCapture();
+                                mPublisher.setPublishVideo(true);
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public void onCameraUnavailable(String cameraId) {
+                    super.onCameraUnavailable(cameraId);
+                    if(myPublisher != null && myPublisher.mPublisher != null) {
+                        myPublisher.mProperty.setPublishVideo(false);
+                        BaseVideoCapturer bvc = myPublisher.mPublisher.getCapturer();
+                        if(bvc != null){
+                            bvc.destroy();
+                        }
+                    }
+                }
+            }, yourHandler);
+        }
 
         super.initialize(cordova, webView);
     }
