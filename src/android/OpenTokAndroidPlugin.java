@@ -50,12 +50,12 @@ import com.opentok.android.BaseVideoCapturer;
 
 public class OpenTokAndroidPlugin extends CordovaPlugin
         implements  Session.SessionListener,
-                    Session.ConnectionListener,
-                    Session.ReconnectionListener,
-                    Session.ArchiveListener,
-                    Session.SignalListener,
-                    PublisherKit.PublisherListener,
-                    Session.StreamPropertiesListener {
+        Session.ConnectionListener,
+        Session.ReconnectionListener,
+        Session.ArchiveListener,
+        Session.SignalListener,
+        PublisherKit.PublisherListener,
+        Session.StreamPropertiesListener {
 
     private String sessionId;
     private String apiKey;
@@ -171,6 +171,34 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         }
     }
 
+
+    public Boolean claimedInBackground = false;
+    public Boolean inBackground = false;
+    /**
+     * Called when the system is about to start resuming a previous activity.
+     *
+     * @param multitasking Flag indicating if multitasking is turned on for app.
+     */
+    @Override
+    public void onPause(boolean multitasking) {
+        super.onPause(multitasking);
+        inBackground = true;
+        Log.i(TAG, "Pause");
+    }
+
+    /**
+     * Called when the activity will start interacting with the user.
+     *
+     * @param multitasking Flag indicating if multitasking is turned on for app.
+     */
+    @Override
+    public void onResume(boolean multitasking) {
+        super.onResume(multitasking);
+        inBackground = false;
+        Log.i(TAG, "Resume");
+        claimedInBackground = false; // We are on foreground, so its now claimed in foreground.
+    }
+
     public class RunnablePublisher extends RunnableUpdateViews implements
             PublisherKit.PublisherListener, Publisher.CameraListener,
             PublisherKit.AudioLevelListener {
@@ -179,6 +207,9 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
            audioFallbackEnabled, audioBitrate, audioSource, videoSource, frameRate, cameraResolution]
        */
         public Publisher mPublisher;
+
+        public Boolean publishing = false;
+        public Boolean oldPublishVideoState = false;
 
         public RunnablePublisher(JSONArray args) {
             this.mProperty = args;
@@ -241,6 +272,52 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             if (cameraName.equals("back")) {
                 mPublisher.cycleCamera();
             }
+
+            CameraManager manager = (CameraManager) cordova.getActivity().getSystemService(Context.CAMERA_SERVICE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                manager.registerAvailabilityCallback(new CameraManager.AvailabilityCallback() {
+                    @Override
+                    public void onCameraAvailable(String cameraId) {
+                        super.onCameraAvailable(cameraId);
+                        // Publisher IS publishing.. Otherwise wouldnt be a reason to claim.
+                        if(mPublisher != null && publishing) {
+                            BaseVideoCapturer bvc = mPublisher.getCapturer();
+                            // If not yet capturing.. Initialize and start capturing..
+                            if (bvc != null && !bvc.isCaptureStarted()) {
+                                Log.i(TAG, "Camera available");
+                                try {
+                                    // Camera claimed in background.
+                                    if(inBackground) {
+                                        claimedInBackground = true;
+                                    }
+                                    bvc.init();
+                                    bvc.startCapture();
+                                    mPublisher.setPublishVideo(oldPublishVideoState);
+                                } catch(Exception e) {
+
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCameraUnavailable(String cameraId) {
+                        super.onCameraUnavailable(cameraId);
+                        // If app is in background, and not camera yet claimed by us in background.. release camera.
+                        if(mPublisher != null && inBackground && !claimedInBackground) {
+                            BaseVideoCapturer bvc = mPublisher.getCapturer();
+                            // If still capturing, stop it and release.
+                            if(bvc != null && bvc.isCaptureStarted() ){
+                                Log.i(TAG, "Camera unavailable");
+                                oldPublishVideoState = mPublisher.getPublishVideo();
+                                bvc.stopCapture();
+                                bvc.destroy();
+                                mPublisher.setPublishVideo(false);
+                            }
+                        }
+                    }
+                }, null);
+            }
         }
 
         public void setPropertyFromArray(JSONArray args) {
@@ -248,6 +325,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         }
 
         public void startPublishing() {
+            publishing = true;
             mSession.publish(mPublisher);
             cordova.getActivity().runOnUiThread(this);
         }
@@ -258,6 +336,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             if(this.mPublisher != null){
                 try {
                     mSession.unpublish(this.mPublisher);
+                    publishing = false;
                 } catch(Exception e) {
                     Log.i(TAG, "Could not unpublish Publisher");
                 }
@@ -296,7 +375,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         public void onStreamCreated(PublisherKit arg0, Stream arg1) {
             Log.i(TAG, "publisher stream received");
             streamCollection.put(arg1.getStreamId(), arg1);
-            
+
             streamHasAudio.put(arg1.getStreamId(), arg1.hasAudio());
             streamHasVideo.put(arg1.getStreamId(), arg1.hasVideo());
             JSONObject videoDimensions = new JSONObject();
@@ -529,39 +608,6 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         streamHasAudio = new HashMap<String, Boolean>();
         streamHasVideo = new HashMap<String, Boolean>();
         streamVideoDimensions = new HashMap<String, JSONObject>();
-
-        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            manager.registerAvailabilityCallback(new CameraManager.AvailabilityCallback() {
-                @Override
-                public void onCameraAvailable(String cameraId) {
-                    super.onCameraAvailable(cameraId);
-                    if(myPublisher != null && myPublisher.mPublisher != null) {
-                        BaseVideoCapturer bvc = myPublisher.mPublisher.getCapturer();
-                        if (bvc != null) {
-                            if (bvc.isCaptureStarted() == false) {
-                                bvc.init();
-                                bvc.startCapture();
-                                mPublisher.setPublishVideo(true);
-                            }
-                        }
-                    }
-                }
-
-                @Override
-                public void onCameraUnavailable(String cameraId) {
-                    super.onCameraUnavailable(cameraId);
-                    if(myPublisher != null && myPublisher.mPublisher != null) {
-                        myPublisher.mProperty.setPublishVideo(false);
-                        BaseVideoCapturer bvc = myPublisher.mPublisher.getCapturer();
-                        if(bvc != null){
-                            bvc.destroy();
-                        }
-                    }
-                }
-            }, yourHandler);
-        }
 
         super.initialize(cordova, webView);
     }
@@ -940,7 +986,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
     @Override
     public void onStreamVideoDimensionsChanged(Session session, Stream stream, int width, int height) {
         JSONObject oldValue = this.streamVideoDimensions.get(stream.getStreamId());
-        
+
         JSONObject newValue = new JSONObject();
         try {
             newValue.put("width", width);
@@ -991,41 +1037,41 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         RequestQueue queue = Volley.newRequestQueue(this.cordova.getActivity().getApplicationContext());
         String url = "https://hlg.tokbox.com/prod/logging/ClientEvent";
         StringRequest postRequest = new StringRequest(Request.Method.POST, url,
-            new Response.Listener<String>()
-            {
-                @Override
-                public void onResponse(String response) {
-                    // response
-                    Log.i(TAG, "Log Response: " + response);
+                new Response.Listener<String>()
+                {
+                    @Override
+                    public void onResponse(String response) {
+                        // response
+                        Log.i(TAG, "Log Response: " + response);
+                    }
+                },
+                new Response.ErrorListener()
+                {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // error
+                        Log.i(TAG, "Error logging");
+                    }
                 }
-            },
-            new Response.ErrorListener()
-            {
-                 @Override
-                 public void onErrorResponse(VolleyError error) {
-                     // error
-                     Log.i(TAG, "Error logging");
-               }
-            }
         ) {
             @Override
             protected Map<String, String> getParams()
             {
-                    JSONObject payload = new JSONObject();
-                    try {
-                        payload.put("platform", "Android");
-                        payload.put("cp_version", "3.2.1");
-                    } catch (JSONException e) {
-                        Log.i(TAG, "Error creating payload json object");
-                    }
-                    Map<String, String>  params = new HashMap<String, String>();
-                    params.put("action", "cp_initialize");
-                    params.put("payload_type", "info");
-                    params.put("partner_id", apiKey);
-                    params.put("payload", payload.toString());
-                    params.put("source", "https://github.com/opentok/cordova-plugin-opentok");
-                    params.put("build", "2.13.0");
-                    params.put("session_id", sessionId);
+                JSONObject payload = new JSONObject();
+                try {
+                    payload.put("platform", "Android");
+                    payload.put("cp_version", "3.2.1");
+                } catch (JSONException e) {
+                    Log.i(TAG, "Error creating payload json object");
+                }
+                Map<String, String>  params = new HashMap<String, String>();
+                params.put("action", "cp_initialize");
+                params.put("payload_type", "info");
+                params.put("partner_id", apiKey);
+                params.put("payload", payload.toString());
+                params.put("source", "https://github.com/opentok/cordova-plugin-opentok");
+                params.put("build", "2.13.0");
+                params.put("session_id", sessionId);
 
 
                 return params;
