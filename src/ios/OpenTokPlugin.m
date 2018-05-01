@@ -18,6 +18,7 @@
     NSString *apiKey;
     NSString *sessionId;
     Boolean statusBarPlugin;
+    NSMutableDictionary *observersDictionary;
 }
 
 @synthesize exceptionId;
@@ -55,7 +56,7 @@
 
     NSMutableDictionary *payload = [[NSMutableDictionary alloc]init];
     [payload setObject:@"iOS" forKey:@"platform"];
-    [payload setObject:@"3.1.2" forKey:@"cp_version"];
+    [payload setObject:@"3.2.2" forKey:@"cp_version"];
     NSMutableDictionary *logData = [[NSMutableDictionary alloc]init];
     [logData setObject:@"cp_initialize" forKey:@"action"];
     [logData setObject:apiKey forKey:@"partner_id"];
@@ -88,6 +89,7 @@
     subscriberDictionary = [[NSMutableDictionary alloc] init];
     streamDictionary = [[NSMutableDictionary alloc] init];
     connectionDictionary = [[NSMutableDictionary alloc] init];
+    observersDictionary = [[NSMutableDictionary alloc] init];
 
     // OT log request
     [self logOT];
@@ -237,7 +239,7 @@
     int left = [[command.arguments objectAtIndex:2] intValue];
     int width = [[command.arguments objectAtIndex:3] intValue];
     int height = [[command.arguments objectAtIndex:4] intValue];
-    
+
     [self setPosition: sid top: top left: left width: width height: height];
 }
 - (void)setPosition:(NSString*)sid top:(int)top left:(int)left width:(int)width height:(int)height {
@@ -302,6 +304,35 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+#pragma mark Subscriber Methods
+- (void)subscribeToAudio:(CDVInvokedUrlCommand*)command{
+    NSString* sid = [command.arguments objectAtIndex:0];
+    OTSubscriber * subscriber = [subscriberDictionary objectForKey:sid];
+    NSString* val = [command.arguments objectAtIndex:1];
+    if (subscriber) {
+        BOOL subscribeAudio = YES;
+        if ([val isEqualToString:@"false"]) {
+            subscribeAudio = NO;
+        }
+        NSLog(@"setting subscribeToAudio");
+        [subscriber setSubscribeToAudio:subscribeAudio];
+    }
+}
+- (void)subscribeToVideo:(CDVInvokedUrlCommand*)command{
+    NSString* sid = [command.arguments objectAtIndex:0];
+    OTSubscriber * subscriber = [subscriberDictionary objectForKey:sid];
+    NSString* val = [command.arguments objectAtIndex:1];
+    if (subscriber) {
+        BOOL subscribeVideo = YES;
+        if ([val isEqualToString:@"false"]) {
+            subscribeVideo = NO;
+        }
+        NSLog(@"setting subscribeToVideo");
+        [subscriber setSubscribeToVideo:subscribeVideo];
+    }
+}
+
+
 
 #pragma mark Session Methods
 - (void)connect:(CDVInvokedUrlCommand *)command{
@@ -330,7 +361,11 @@
 // Called by session.unpublish(...)
 - (void)unpublish:(CDVInvokedUrlCommand*)command{
     NSLog(@"iOS Unpublishing publisher");
-    [_session unpublish:_publisher error:nil];
+    @try {
+        [_session unpublish:_publisher error:nil];
+    } @catch (NSException *exception) {
+        NSLog(@"Could not unpublish Publisher");
+    }
 }
 
 // Called by session.subscribe(streamId, top, left)
@@ -378,9 +413,13 @@
     //Get Parameters
     NSString* sid = [command.arguments objectAtIndex:0];
     OTSubscriber * subscriber = [subscriberDictionary objectForKey:sid];
-    [_session unsubscribe:subscriber error:nil];
-    [subscriber.view removeFromSuperview];
-    [subscriberDictionary removeObjectForKey:sid];
+    @try {
+        [_session unsubscribe:subscriber error:nil];
+        [subscriber.view removeFromSuperview];
+        [subscriberDictionary removeObjectForKey:sid];
+    } @catch (NSException *exception) {
+        NSLog(@"Could not unsubscribe Subscribe");
+    }
 }
 
 // Called by session.unsubscribe(streamId, top, left)
@@ -448,7 +487,6 @@
     [data setObject: @(audioLevel) forKey: @"audioLevel"];
     [self triggerJSEvent: @"subscriberEvents" withType: @"audioLevelUpdated" withData: data];
 }
-
 
 #pragma mark On property changed
 - (void)observeValueForKeyPath:(NSString*)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
@@ -642,6 +680,7 @@
     [self triggerStreamEvent: stream withEventType: @"publisherEvents" subEvent: @"streamCreated"];
 }
 - (void)publisher:(OTPublisherKit*)publisher streamDestroyed:(OTStream *)stream{
+    [self removeObserversFromStream: stream];
     [streamDictionary removeObjectForKey: stream.streamId];
     [self triggerStreamEvent: stream withEventType: @"publisherEvents" subEvent: @"streamDestroyed"];
 }
@@ -676,18 +715,26 @@
     return reasonData;
 }
 - (void)addObserversToStream: (OTStream*) stream{
-    // Add observers
-    [stream addObserver:self forKeyPath:@"hasAudio" options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld) context:(__bridge void * _Nullable)(stream)];
-    [stream addObserver:self forKeyPath:@"hasVideo" options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld) context:(__bridge void * _Nullable)(stream)];
-    [stream addObserver:self forKeyPath:@"videoDimensions" options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld) context:(__bridge void * _Nullable)(stream)];
-    [stream addObserver:self forKeyPath:@"videoType" options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld) context:(__bridge void * _Nullable)(stream)];
+    BOOL observersAdded = [[observersDictionary objectForKey:stream.streamId] boolValue];
+    if (!observersAdded) {
+        [observersDictionary setObject: [NSNumber numberWithBool:YES] forKey: stream.streamId];
+        // Add observers
+        [stream addObserver:self forKeyPath:@"hasAudio" options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld) context:(__bridge void * _Nullable)(stream)];
+        [stream addObserver:self forKeyPath:@"hasVideo" options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld) context:(__bridge void * _Nullable)(stream)];
+        [stream addObserver:self forKeyPath:@"videoDimensions" options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld) context:(__bridge void * _Nullable)(stream)];
+        [stream addObserver:self forKeyPath:@"videoType" options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld) context:(__bridge void * _Nullable)(stream)];
+    }
 }
 - (void)removeObserversFromStream: (OTStream*) stream{
-    // Removing observers
-    [stream removeObserver:self forKeyPath:@"hasAudio"];
-    [stream removeObserver:self forKeyPath:@"hasVideo"];
-    [stream removeObserver:self forKeyPath:@"videoDimensions"];
-    [stream removeObserver:self forKeyPath:@"videoType"];
+   BOOL observersAdded = [[observersDictionary objectForKey:stream.streamId] boolValue];
+    if (observersAdded) {
+        [observersDictionary removeObjectForKey: stream.streamId];
+        // Removing observers
+        [stream removeObserver:self forKeyPath:@"hasAudio"];
+        [stream removeObserver:self forKeyPath:@"hasVideo"];
+        [stream removeObserver:self forKeyPath:@"videoDimensions"];
+        [stream removeObserver:self forKeyPath:@"videoType"];
+    }
 }
 - (void)triggerStreamEvent: (OTStream*) stream withEventType: (NSString*) eventType subEvent: (NSString*) subEvent{
     NSMutableDictionary* data = [[NSMutableDictionary alloc] init];
@@ -713,6 +760,21 @@
     [streamData setObject: [NSNumber numberWithInt:-999] forKey: @"fps" ];
     [streamData setObject: [NSNumber numberWithBool: stream.hasAudio] forKey: @"hasAudio" ];
     [streamData setObject: [NSNumber numberWithBool: stream.hasVideo] forKey: @"hasVideo" ];
+
+    NSMutableDictionary* videoDimensions = [[NSMutableDictionary alloc] init];
+    CGSize dimensions = stream.videoDimensions;
+    [videoDimensions setObject: @((NSInteger) (floor(dimensions.width))) forKey:@"width"];
+    [videoDimensions setObject: @((NSInteger) (floor(dimensions.height))) forKey:@"height"];
+    [streamData setObject: videoDimensions forKey:@"videoDimensions"];
+
+    NSString* videoType = @"custom";
+    if(stream.videoType == OTStreamVideoTypeCamera) {
+        videoType = @"camera";
+    } else if(stream.videoType == OTStreamVideoTypeScreen) {
+        videoType = @"screen";
+    }
+    [streamData setObject: videoType forKey:@"videoType"];
+
     [streamData setObject: stream.name forKey: @"name" ];
     [streamData setObject: stream.streamId forKey: @"streamId" ];
     return streamData;

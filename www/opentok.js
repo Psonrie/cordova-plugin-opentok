@@ -260,7 +260,6 @@ TBGetZIndex = function(ele) {
   var val;
   while ((ele != null)) {
     val = document.defaultView.getComputedStyle(ele, null).getPropertyValue('z-index');
-    console.log(val);
     if (parseInt(val)) {
       return val;
     }
@@ -398,15 +397,11 @@ TBPublisher = (function() {
   };
 
   TBPublisher.prototype.eventReceived = function(response) {
-    pdebug("publisher event received", response);
     return this[response.eventType](response.data);
   };
 
   TBPublisher.prototype.streamCreated = function(event) {
     var streamEvent;
-    pdebug("publisher streamCreatedHandler", event);
-    pdebug("publisher streamCreatedHandler", this.session);
-    pdebug("publisher streamCreatedHandler", this.session.sessionConnection);
     this.stream = new TBStream(event.stream, this.session.sessionConnection);
     streamEvent = new TBEvent("streamCreated");
     streamEvent.stream = this.stream;
@@ -416,7 +411,6 @@ TBPublisher = (function() {
 
   TBPublisher.prototype.streamDestroyed = function(event) {
     var streamEvent;
-    pdebug("publisher streamDestroyed event", event);
     streamEvent = new TBEvent("streamDestroyed");
     streamEvent.stream = this.stream;
     streamEvent.reason = "clientDisconnected";
@@ -749,7 +743,6 @@ TBSession = (function() {
   };
 
   TBSession.prototype.eventReceived = function(response) {
-    pdebug("session event received", response);
     return this[response.eventType](response.data);
   };
 
@@ -765,7 +758,6 @@ TBSession = (function() {
 
   TBSession.prototype.connectionDestroyed = function(event) {
     var connection, connectionEvent;
-    pdebug("connectionDestroyedHandler", event);
     connection = this.connections[event.connection.connectionId];
     connectionEvent = new TBEvent("connectionDestroyed");
     connectionEvent.connection = connection;
@@ -813,7 +805,6 @@ TBSession = (function() {
 
   TBSession.prototype.streamCreated = function(event) {
     var stream, streamEvent;
-    pdebug("streamCreatedHandler", event);
     stream = new TBStream(event.stream, this.connections[event.stream.connectionId]);
     this.streams[stream.streamId] = stream;
     streamEvent = new TBEvent("streamCreated");
@@ -824,7 +815,6 @@ TBSession = (function() {
 
   TBSession.prototype.streamDestroyed = function(event) {
     var element, stream, streamEvent;
-    pdebug("streamDestroyed event", event);
     stream = this.streams[event.stream.streamId];
     streamEvent = new TBEvent("streamDestroyed");
     streamEvent.stream = stream;
@@ -843,7 +833,12 @@ TBSession = (function() {
   };
 
   TBSession.prototype.streamPropertyChanged = function(event) {
-    var streamEvent;
+    var stream, streamEvent;
+    stream = new TBStream(event.stream, this.connections[event.stream.connectionId]);
+    if (stream.streamId === "TBPublisher") {
+      this.publisher.stream = stream;
+    }
+    this.streams[stream.streamId] = stream;
     streamEvent = new TBEvent("streamPropertyChanged");
     streamEvent.stream = event.stream;
     streamEvent.changedProperty = event.changedProperty;
@@ -870,17 +865,15 @@ TBSession = (function() {
 
   TBSession.prototype.signalReceived = function(event) {
     var streamEvent;
-    pdebug("signalReceived event", event);
     streamEvent = new TBEvent("signal");
-    streamEvent.type = event.type;
     streamEvent.data = event.data;
     streamEvent.from = this.connections[event.connectionId];
     this.dispatchEvent(streamEvent);
     streamEvent = new TBEvent("signal:" + event.type);
-    streamEvent.type = event.type;
     streamEvent.data = event.data;
     streamEvent.from = this.connections[event.connectionId];
-    return this.dispatchEvent(streamEvent);
+    this.dispatchEvent(streamEvent);
+    return this;
   };
 
   TBSession.prototype.archiveStarted = function(event) {
@@ -965,10 +958,22 @@ TBSubscriber = (function() {
   };
 
   TBSubscriber.prototype.subscribeToAudio = function(value) {
+    var state;
+    state = "true";
+    if ((value != null) && (value === false || value === "false")) {
+      state = "false";
+    }
+    Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribeToAudio", [this.streamId, state]);
     return this;
   };
 
   TBSubscriber.prototype.subscribeToVideo = function(value) {
+    var state;
+    state = "true";
+    if ((value != null) && (value === false || value === "false")) {
+      state = "false";
+    }
+    Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribeToVideo", [this.streamId, state]);
     return this;
   };
 
@@ -990,7 +995,6 @@ TBSubscriber = (function() {
       this.id = divObject;
       this.element = document.getElementById(divObject);
     }
-    pdebug("creating subscriber", properties);
     this.streamId = stream.streamId;
     if ((properties != null) && properties.width === "100%" && properties.height === "100%") {
       this.element.style.width = "100%";
@@ -1027,14 +1031,12 @@ TBSubscriber = (function() {
     });
     position = getPosition(this.element);
     ratios = TBGetScreenRatios();
-    pdebug("final subscriber position", position);
     OT.getHelper().eventing(this);
     Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribe", [stream.streamId, position.top, position.left, width, height, zIndex, subscribeToAudio, subscribeToVideo, ratios.widthRatio, ratios.heightRatio]);
     Cordova.exec(this.eventReceived, TBSuccess, OTPlugin, "addEvent", ["subscriberEvents"]);
   }
 
   TBSubscriber.prototype.eventReceived = function(response) {
-    pdebug("subscriber event received", response);
     return this[response.eventType](response.data);
   };
 
