@@ -75,16 +75,12 @@ class TBPublisher
     else
       pdebug "No method found for EventType: '" + response.eventType + "'";
   streamCreated: (event) =>
-    pdebug "publisher streamCreatedHandler", event
-    pdebug "publisher streamCreatedHandler", @session
-    pdebug "publisher streamCreatedHandler", @session.sessionConnection
     @stream = new TBStream( event.stream, @session.sessionConnection )
     streamEvent = new TBEvent("streamCreated")
     streamEvent.stream = @stream
     @dispatchEvent(streamEvent)
     return @
   streamDestroyed: (event) =>
-    pdebug "publisher streamDestroyed event", event
     streamEvent = new TBEvent("streamDestroyed")
     streamEvent.stream = @stream
     streamEvent.reason = "clientDisconnected"

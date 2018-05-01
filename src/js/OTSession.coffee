@@ -168,7 +168,6 @@ class TBSession
     @dispatchEvent(connectionEvent)
     return @
   connectionDestroyed: (event) =>
-    pdebug "connectionDestroyedHandler", event
     connection = @connections[ event.connection.connectionId ]
     connectionEvent = new TBEvent("connectionDestroyed")
     connectionEvent.connection = connection
@@ -217,7 +216,6 @@ class TBSession
     @dispatchEvent(sessionEvent)
     return @
   streamCreated: (event) =>
-    pdebug "streamCreatedHandler", event
     stream = new TBStream( event.stream, @connections[event.stream.connectionId] )
     @streams[ stream.streamId ] = stream
     OT.timeStreamCreated[stream.streamId] = performance.now()
@@ -227,7 +225,6 @@ class TBSession
     @dispatchEvent(streamEvent)
     return @
   streamDestroyed: (event) =>
-    pdebug "streamDestroyed event", event
     stream = @streams[event.stream.streamId]
     streamEvent = new TBEvent("streamDestroyed")
     streamEvent.stream = stream
@@ -242,6 +239,11 @@ class TBSession
       delete( @streams[ stream.streamId ] )
     return @
   streamPropertyChanged: (event) ->
+    stream = new TBStream(event.stream, @connections[event.stream.connectionId])
+    if(stream.streamId == "TBPublisher")
+      @publisher.stream = stream
+    @streams[stream.streamId] = stream
+
     streamEvent = new TBEvent("streamPropertyChanged")
     streamEvent.stream = event.stream
     streamEvent.changedProperty = event.changedProperty
@@ -262,18 +264,16 @@ class TBSession
       callbackFunc()
       return
   signalReceived: (event) =>
-    pdebug "signalReceived event", event
     streamEvent = new TBEvent("signal")
-    streamEvent.type = event.type
     streamEvent.data = event.data
     streamEvent.from = @connections[event.connectionId]
     @dispatchEvent(streamEvent)
 
     streamEvent = new TBEvent("signal:#{event.type}")
-    streamEvent.type = event.type
     streamEvent.data = event.data
     streamEvent.from = @connections[event.connectionId]
     @dispatchEvent(streamEvent)
+    return @
   archiveStarted: (event) ->
     streamEvent = new TBEvent("archiveStarted")
     streamEvent.id = event.id

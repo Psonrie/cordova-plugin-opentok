@@ -28,8 +28,16 @@ class TBSubscriber
   on: (event, handler) ->
     return @
   subscribeToAudio: (value) ->
+    state = "true"
+    if value? and ( value == false or value == "false" )
+      state = "false"
+    Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribeToAudio", [@streamId, state] );
     return @
   subscribeToVideo: (value) ->
+    state = "true"
+    if value? and ( value == false or value == "false" )
+      state = "false"
+    Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribeToVideo", [@streamId, state] );
     return @
 
   constructor: (stream, divObject, properties) ->
@@ -40,7 +48,6 @@ class TBSubscriber
       @id = divObject
       @element = document.getElementById(divObject)
 
-    pdebug "creating subscriber", properties
     @streamId = stream.streamId
     divPosition = getPosition(@element)
     subscribeToVideo="true"
@@ -67,7 +74,6 @@ class TBSubscriber
       height = 0;
     position = getPosition(@element)
     ratios = TBGetScreenRatios()
-    pdebug "final subscriber position", position
     OT.getHelper().eventing(@)
     Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribe", [stream.streamId, position.top, position.left, width, height, zIndex, subscribeToAudio, subscribeToVideo, ratios.widthRatio, ratios.heightRatio] )
     Cordova.exec(@eventReceived, TBSuccess, OTPlugin, "addEvent", ["subscriberEvents"] )
