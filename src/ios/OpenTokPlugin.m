@@ -171,30 +171,7 @@
 
     NSString* strRadius = [command.arguments objectAtIndex:11];
     NSArray* strArray = [strRadius componentsSeparatedByString:@" "];
-
-    CGFloat topLeftX = [strArray[0] floatValue];
-    CGFloat topLeftY = [strArray[1] floatValue];
-    CGFloat topRightX = [strArray[2] floatValue];
-    CGFloat topRightY = [strArray[3] floatValue];
-    CGFloat bottomRightX = [strArray[4] floatValue];
-    CGFloat bottomRightY = [strArray[5] floatValue];
-    CGFloat bottomLeftX = [strArray[6] floatValue];
-    CGFloat bottomLeftY = [strArray[7] floatValue];
-
-    CGMutablePathRef path = CGPathCreateMutable();
-    CGPathAddRect(path, NULL, CGRectMake(topLeftX, 0, width - topLeftX - topRightX, height / 2));
-    CGPathAddRect(path, NULL, CGRectMake(bottomLeftX, height / 2, width - bottomLeftX - bottomRightX, height));
-    CGPathAddRect(path, NULL, CGRectMake(0, topLeftY, width / 2, height - topLeftY - bottomLeftY));
-    CGPathAddRect(path, NULL, CGRectMake(width / 2, topRightY, width, height - topRightY - bottomRightY));
-
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(0, 0, topLeftX * 2, topLeftY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(width - (topRightX * 2), 0, topRightX * 2, topRightY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(0, height - (bottomLeftY * 2) , bottomLeftX * 2,     bottomLeftY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(width - (bottomRightX * 2), height - (bottomRightY * 2), bottomRightX * 2, bottomRightY * 2));
-
-    CAShapeLayer *maskLayer = [[CAShapeLayer alloc] init];
-    maskLayer.path = path;
-    _publisher.view.layer.mask = maskLayer;
+    [self clipView: @"TBPublisher" radii: strArray width: width height: height];
 
     // Set depth location of camera view based on CSS z-index.
     _publisher.view.layer.zPosition = zIndex;
@@ -219,35 +196,11 @@
 
     NSString* strRadius = [command.arguments objectAtIndex:8];
     NSArray* strArray = [strRadius componentsSeparatedByString:@" "];
-
-    CGFloat topLeftX = [strArray[0] floatValue];
-    CGFloat topLeftY = [strArray[1] floatValue];
-    CGFloat topRightX = [strArray[2] floatValue];
-    CGFloat topRightY = [strArray[3] floatValue];
-    CGFloat bottomRightX = [strArray[4] floatValue];
-    CGFloat bottomRightY = [strArray[5] floatValue];
-    CGFloat bottomLeftX = [strArray[6] floatValue];
-    CGFloat bottomLeftY = [strArray[7] floatValue];
-
-    CGMutablePathRef path = CGPathCreateMutable();
-    CGPathAddRect(path, NULL, CGRectMake(topLeftX, 0, width - topLeftX - topRightX, height / 2));
-    CGPathAddRect(path, NULL, CGRectMake(bottomLeftX, height / 2, width - bottomLeftX - bottomRightX, height));
-    CGPathAddRect(path, NULL, CGRectMake(0, topLeftY, width / 2, height - topLeftY - bottomLeftY));
-    CGPathAddRect(path, NULL, CGRectMake(width / 2, topRightY, width, height - topRightY - bottomRightY));
-
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(0, 0, topLeftX * 2, topLeftY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(width - (topRightX * 2), 0, topRightX * 2, topRightY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(0, height - (bottomLeftY * 2) , bottomLeftX * 2,     bottomLeftY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(width - (bottomRightX * 2), height - (bottomRightY * 2), bottomRightX * 2, bottomRightY * 2));
-
-    CAShapeLayer *maskLayer = [[CAShapeLayer alloc] init];
-    maskLayer.path = path;
+    [self clipView: sid radii: strArray width: width height: height];
 
     if ([sid isEqualToString:@"TBPublisher"]) {
         NSLog(@"The Width is: %d", width);
         _publisher.view.frame = CGRectMake(left, top, width, height);
-
-        _publisher.view.layer.mask = maskLayer;
 
         // Set depth location of camera view based on CSS z-index.
         _publisher.view.layer.zPosition = zIndex;
@@ -271,8 +224,6 @@
     if (streamInfo) {
         // Reposition the video feeds!
         streamInfo.view.frame = CGRectMake(left, top, width, height);
-
-        streamInfo.view.layer.mask = maskLayer;
 
         // Set depth location of camera view based on CSS z-index.
         streamInfo.view.layer.zPosition = zIndex;
@@ -435,32 +386,7 @@
 
     NSString* strRadius = [command.arguments objectAtIndex:10];
     NSArray* strArray = [strRadius componentsSeparatedByString:@" "];
-
-    CGFloat topLeftX = [strArray[0] floatValue];
-    CGFloat topLeftY = [strArray[1] floatValue];
-    CGFloat topRightX = [strArray[2] floatValue];
-    CGFloat topRightY = [strArray[3] floatValue];
-    CGFloat bottomRightX = [strArray[4] floatValue];
-    CGFloat bottomRightY = [strArray[5] floatValue];
-    CGFloat bottomLeftX = [strArray[6] floatValue];
-    CGFloat bottomLeftY = [strArray[7] floatValue];
-
-    CGMutablePathRef path = CGPathCreateMutable();
-    CGPathAddRect(path, NULL, CGRectMake(topLeftX, 0, width - topLeftX - topRightX, height / 2));
-    CGPathAddRect(path, NULL, CGRectMake(bottomLeftX, height / 2, width - bottomLeftX - bottomRightX, height));
-    CGPathAddRect(path, NULL, CGRectMake(0, topLeftY, width / 2, height - topLeftY - bottomLeftY));
-    CGPathAddRect(path, NULL, CGRectMake(width / 2, topRightY, width, height - topRightY - bottomRightY));
-
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(0, 0, topLeftX * 2, topLeftY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(width - (topRightX * 2), 0, topRightX * 2, topRightY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(0, height - (bottomLeftY * 2) , bottomLeftX * 2,     bottomLeftY * 2));
-    CGPathAddEllipseInRect(path, NULL, CGRectMake(width - (bottomRightX * 2), height - (bottomRightY * 2), bottomRightX * 2, bottomRightY * 2));
-
-    CAShapeLayer *maskLayer = [[CAShapeLayer alloc] init];
-    maskLayer.path = path;
-
-    sub.view.layer.mask = maskLayer;
-
+    [self clipView: sid radii: strArray width: width height: height];
 
     // Set depth location of camera view based on CSS z-index.
     sub.view.layer.zPosition = zIndex;
@@ -543,7 +469,7 @@
 - (void)subscriberVideoEnabled:(OTSubscriberKit*)sub reason:(OTSubscriberVideoEventReason)reason{
     NSMutableDictionary* eventData = [[NSMutableDictionary alloc] init];
     NSString* reasonData = [self validateReason: reason];
-    
+
     [eventData setObject: reasonData forKey:@"reason"];
     [self triggerJSEvent: @"subscriberEvents" withType: @"videoEnabled" withData: eventData];
 }
@@ -768,6 +694,36 @@
 
 #pragma mark -
 #pragma mark Helper Methods
+- (void)clipView: (NSString*) sid radii:(NSArray*) radii width:(CGFloat) width height:(CGFloat) height {
+    CGFloat topLeftX = [radii[0] floatValue];
+    CGFloat topLeftY = [radii[1] floatValue];
+    CGFloat topRightX = [radii[2] floatValue];
+    CGFloat topRightY = [radii[3] floatValue];
+    CGFloat bottomRightX = [radii[4] floatValue];
+    CGFloat bottomRightY = [radii[5] floatValue];
+    CGFloat bottomLeftX = [radii[6] floatValue];
+    CGFloat bottomLeftY = [radii[7] floatValue];
+
+    CGMutablePathRef path = CGPathCreateMutable();
+    CGPathAddRect(path, NULL, CGRectMake(topLeftX, 0, width - topLeftX - topRightX, height / 2));
+    CGPathAddRect(path, NULL, CGRectMake(bottomLeftX, height / 2, width - bottomLeftX - bottomRightX, height));
+    CGPathAddRect(path, NULL, CGRectMake(0, topLeftY, width / 2, height - topLeftY - bottomLeftY));
+    CGPathAddRect(path, NULL, CGRectMake(width / 2, topRightY, width, height - topRightY - bottomRightY));
+
+    CGPathAddEllipseInRect(path, NULL, CGRectMake(0, 0, topLeftX * 2, topLeftY * 2));
+    CGPathAddEllipseInRect(path, NULL, CGRectMake(width - (topRightX * 2), 0, topRightX * 2, topRightY * 2));
+    CGPathAddEllipseInRect(path, NULL, CGRectMake(0, height - (bottomLeftY * 2) , bottomLeftX * 2,     bottomLeftY * 2));
+    CGPathAddEllipseInRect(path, NULL, CGRectMake(width - (bottomRightX * 2), height - (bottomRightY * 2), bottomRightX * 2, bottomRightY * 2));
+
+    CAShapeLayer *maskLayer = [[CAShapeLayer alloc] init];
+    maskLayer.path = path;
+    if([sid isEqualToString:@"TBPublisher"]) {
+        _publisher.view.layer.mask = maskLayer;
+    } else {
+        OTSubscriber* streamInfo = [subscriberDictionary objectForKey:sid];
+        streamInfo.view.layer.mask = maskLayer;
+    }
+}
 - (NSString*)validateReason: (OTSubscriberVideoEventReason)reason{
     NSString* reasonData = @"";
     if(reason == OTSubscriberVideoEventPublisherPropertyChanged) {
