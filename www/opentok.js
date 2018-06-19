@@ -518,7 +518,7 @@ TBPublisher = (function() {
 
   TBPublisher.prototype.streamCreated = function(event) {
     var streamEvent;
-    this.stream = new TBStream(event.stream, this.session.sessionConnection);
+    this.stream = new TBStream(event.stream, this.session.sessionConnected);
     streamEvent = new TBEvent("streamCreated");
     streamEvent.stream = this.stream;
     this.dispatchEvent(streamEvent);
@@ -1003,15 +1003,14 @@ TBSession = (function() {
   TBSession.prototype.signalReceived = function(event) {
     var streamEvent;
     streamEvent = new TBEvent("signal");
-    streamEvent.type = event.type;
     streamEvent.data = event.data;
     streamEvent.from = this.connections[event.connectionId];
     this.dispatchEvent(streamEvent);
     streamEvent = new TBEvent("signal:" + event.type);
-    streamEvent.type = event.type;
     streamEvent.data = event.data;
     streamEvent.from = this.connections[event.connectionId];
-    return this.dispatchEvent(streamEvent);
+    this.dispatchEvent(streamEvent);
+    return this;
   };
 
   TBSession.prototype.archiveStarted = function(event) {
@@ -1019,14 +1018,16 @@ TBSession = (function() {
     streamEvent = new TBEvent("archiveStarted");
     streamEvent.id = event.id;
     streamEvent.name = event.name;
-    return this.dispatch(streamEvent);
+    this.dispatchEvent(streamEvent);
+    return this;
   };
 
   TBSession.prototype.archiveStopped = function(event) {
     var streamEvent;
     streamEvent = new TBEvent("archiveStopped");
     streamEvent.id = event.id;
-    return this.dispatch(streamEvent);
+    this.dispatchEvent(streamEvent);
+    return this;
   };
 
   TBSession.prototype.addEventListener = function(event, handler) {

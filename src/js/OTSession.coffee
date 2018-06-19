@@ -275,25 +275,26 @@ class TBSession
       return
   signalReceived: (event) =>
     streamEvent = new TBEvent("signal")
-    streamEvent.type = event.type
     streamEvent.data = event.data
     streamEvent.from = @connections[event.connectionId]
     @dispatchEvent(streamEvent)
 
     streamEvent = new TBEvent("signal:#{event.type}")
-    streamEvent.type = event.type
     streamEvent.data = event.data
     streamEvent.from = @connections[event.connectionId]
     @dispatchEvent(streamEvent)
+    return @
   archiveStarted: (event) ->
     streamEvent = new TBEvent("archiveStarted")
     streamEvent.id = event.id
     streamEvent.name = event.name
-    @dispatch(streamEvent)
+    @dispatchEvent(streamEvent)
+    return @
   archiveStopped: (event) ->
     streamEvent = new TBEvent("archiveStopped")
     streamEvent.id = event.id
-    @dispatch(streamEvent)
+    @dispatchEvent(streamEvent)
+    return @
 
 
   # deprecating
