@@ -178,6 +178,7 @@ OTObserveVideoContainer = (() ->
         attributeFilter: ['style', 'class']
       })
 )()
+MutationObserver = MutationObserver || WebKitMutationObserver
 OTDomObserver = new MutationObserver((mutations) ->
   getVideoContainer = (node) ->
     if typeof node.querySelector != 'function'

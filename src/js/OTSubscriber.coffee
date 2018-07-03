@@ -85,7 +85,6 @@ class TBSubscriber
     Cordova.exec(@eventReceived, TBSuccess, OTPlugin, "addEvent", ["subscriberEvents"] )
 
   eventReceived: (response) =>
-    pdebug "subscriber event received", response
     if typeof @[response.eventType] == "function"
       @[response.eventType](response.data)
     else

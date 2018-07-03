@@ -33,8 +33,8 @@ class TBPublisher
     resolution = "640X480"
     insertMode = "replace"
     if @properties?
-      width = @properties.width ? position.width
-      height = @properties.height ? position.height
+      width = @properties.width ? @position.width
+      height = @properties.height ? @position.height
       name = @properties.name ? ""
       cameraName = @properties.cameraName ? "front"
       audioFallbackEnabled = @properties.audioFallbackEnabled ? audioFallbackEnabled

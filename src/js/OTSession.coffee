@@ -164,7 +164,6 @@ class TBSession
   # event listeners
   # todo - other events: connectionCreated, connectionDestroyed, signal?, streamPropertyChanged, signal:type?
   eventReceived: (response) =>
-    pdebug "session event received", response
     if typeof @[response.eventType] == "function"
       @[response.eventType](response.data)
     else
@@ -208,7 +207,6 @@ class TBSession
     event = null
     return @
   sessionDisconnected: (event) =>
-    pdebug "sessionDisconnected event", event
     OTDomObserver.disconnect()
     @alreadyPublishing = false
     sessionDisconnectedEvent = new TBEvent("sessionDisconnected")
