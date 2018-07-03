@@ -50,6 +50,11 @@ class TBSubscriber
 
     @streamId = stream.streamId
     @stream = stream
+    if(properties? && properties.width=="100%" && properties.height == "100%")
+      @element.style.width="100%"
+      @element.style.height="100%"
+      properties.width = ""
+      properties.height = ""
     divPosition = getPosition(@element)
     subscribeToVideo="true"
     zIndex = TBGetZIndex(@element)
@@ -80,7 +85,6 @@ class TBSubscriber
     Cordova.exec(@eventReceived, TBSuccess, OTPlugin, "addEvent", ["subscriberEvents"] )
 
   eventReceived: (response) =>
-    pdebug "subscriber event received", response
     if typeof @[response.eventType] == "function"
       @[response.eventType](response.data)
     else

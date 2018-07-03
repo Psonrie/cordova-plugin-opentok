@@ -184,7 +184,7 @@ class TBSession
     delete( @connections[ connection.connectionId] )
     return @
   sessionConnected: (event) =>
-    document.addEventListener('scroll', OTOnScrollEvent, true);
+    pdebug "sessionConnectedHandler", event
     OTDomObserver.observe(document, {
       # Set to true if additions and removals of the target node's child elements (including text nodes) are to be observed.
       childList: true
@@ -207,7 +207,6 @@ class TBSession
     event = null
     return @
   sessionDisconnected: (event) =>
-    document.removeEventListener('scroll', OTOnScrollEvent);
     OTDomObserver.disconnect()
     @alreadyPublishing = false
     sessionDisconnectedEvent = new TBEvent("sessionDisconnected")
