@@ -34,14 +34,8 @@ replaceWithVideoStream = (element, streamId, properties) ->
   newElement.setAttribute( "class", "OT_root #{typeClass}" )
   newElement.setAttribute( "data-streamid", streamId )
   newElement.setAttribute( "data-insertMode", properties.insertMode )
-  if (typeof properties.width is 'string')
-    newElement.style.width = properties.width
-  else
-    newElement.style.width = properties.width+"px"
-  if (typeof properties.height is 'string')
-    newElement.style.height = properties.height
-  else
-    newElement.style.height = properties.height+"px"
+  newElement.style.width = properties.width+"px"
+  newElement.style.height = properties.height+"px"
   newElement.style.overflow = "hidden"
   newElement.style['background-color'] = "#000000"
   streamElements[ streamId ] = newElement

@@ -199,16 +199,8 @@ replaceWithVideoStream = function(element, streamId, properties) {
   newElement.setAttribute("class", "OT_root " + typeClass);
   newElement.setAttribute("data-streamid", streamId);
   newElement.setAttribute("data-insertMode", properties.insertMode);
-  if (typeof properties.width === 'string') {
-    newElement.style.width = properties.width;
-  } else {
-    newElement.style.width = properties.width + "px";
-  }
-  if (typeof properties.height === 'string') {
-    newElement.style.height = properties.height;
-  } else {
-    newElement.style.height = properties.height + "px";
-  }
+  newElement.style.width = properties.width + "px";
+  newElement.style.height = properties.height + "px";
   newElement.style.overflow = "hidden";
   newElement.style['background-color'] = "#000000";
   streamElements[streamId] = newElement;
@@ -374,6 +366,7 @@ OTObserveVideoContainer = (function() {
 })();
 
 MutationObserver = MutationObserver || WebKitMutationObserver;
+
 OTDomObserver = new MutationObserver(function(mutations) {
   var checkNewNode, checkRemovedNode, getVideoContainer, mutation, node, videoContainer, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
   getVideoContainer = function(node) {
