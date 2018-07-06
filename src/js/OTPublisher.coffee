@@ -34,7 +34,7 @@ class TBPublisher
     insertMode = "replace"
     if @properties?
       width = @properties.width ? position.width
-      height = @properties.height ? position.
+      height = @properties.height ? position.height
       name = @properties.name ? ""
       cameraName = @properties.cameraName ? "front"
       audioFallbackEnabled = @properties.audioFallbackEnabled ? audioFallbackEnabled
