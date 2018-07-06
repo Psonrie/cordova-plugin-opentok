@@ -198,8 +198,16 @@ replaceWithVideoStream = function(element, streamId, properties) {
   newElement.setAttribute("class", "OT_root " + typeClass);
   newElement.setAttribute("data-streamid", streamId);
   newElement.setAttribute("data-insertMode", properties.insertMode);
-  newElement.style.width = properties.width + "px";
-  newElement.style.height = properties.height + "px";
+  if (typeof properties.width === 'string') {
+    newElement.style.width = properties.width;
+  } else {
+    newElement.style.width = properties.width + "px";
+  }
+  if (typeof properties.height === 'string') {
+    newElement.style.height = properties.height;
+  } else {
+    newElement.style.height = properties.height + "px";
+  }
   newElement.style.overflow = "hidden";
   newElement.style['background-color'] = "#000000";
   streamElements[streamId] = newElement;
@@ -1002,12 +1010,6 @@ TBSubscriber = (function() {
     }
     this.streamId = stream.streamId;
     this.stream = stream;
-    if ((properties != null) && properties.width === "100%" && properties.height === "100%") {
-      this.element.style.width = "100%";
-      this.element.style.height = "100%";
-      properties.width = "";
-      properties.height = "";
-    }
     divPosition = getPosition(this.element);
     subscribeToVideo = "true";
     zIndex = TBGetZIndex(this.element);
