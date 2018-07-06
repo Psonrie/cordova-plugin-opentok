@@ -1136,12 +1136,6 @@ TBSubscriber = (function() {
     }
     this.streamId = stream.streamId;
     this.stream = stream;
-    if ((properties != null) && properties.width === "100%" && properties.height === "100%") {
-      this.element.style.width = "100%";
-      this.element.style.height = "100%";
-      properties.width = "";
-      properties.height = "";
-    }
     divPosition = getPosition(this.element);
     subscribeToVideo = "true";
     zIndex = TBGetZIndex(this.element);
