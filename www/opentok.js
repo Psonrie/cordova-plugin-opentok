@@ -166,7 +166,7 @@ TBEvent = (function() {
 
 })();
 
-var OTDomObserver, OTObserveVideoContainer, OTOnScrollEvent, OTPublisherError, OTReplacePublisher, TBError, TBGenerateDomHelper, TBGetScreenRatios, TBGetZIndex, TBSuccess, TBUpdateObjects, getPosition, pdebug, replaceWithVideoStream, streamElements;
+var MutationObserver, OTDomObserver, OTObserveVideoContainer, OTOnScrollEvent, OTPublisherError, OTReplacePublisher, TBError, TBGenerateDomHelper, TBGetScreenRatios, TBGetZIndex, TBSuccess, TBUpdateObjects, getPosition, pdebug, replaceWithVideoStream, streamElements;
 
 streamElements = {};
 
@@ -362,6 +362,7 @@ OTObserveVideoContainer = (function() {
   };
 })();
 
+MutationObserver = MutationObserver || WebKitMutationObserver;
 OTDomObserver = new MutationObserver(function(mutations) {
   var checkNewNode, checkRemovedNode, getVideoContainer, mutation, node, videoContainer, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
   getVideoContainer = function(node) {
@@ -458,8 +459,8 @@ TBPublisher = (function() {
     resolution = "640X480";
     insertMode = "replace";
     if (this.properties != null) {
-      width = (_ref = this.properties.width) != null ? _ref : position.width;
-      height = (_ref1 = this.properties.height) != null ? _ref1 : position.height;
+      width = (_ref = this.properties.width) != null ? _ref : this.position.width;
+      height = (_ref1 = this.properties.height) != null ? _ref1 : this.position.height;
       name = (_ref2 = this.properties.name) != null ? _ref2 : "";
       cameraName = (_ref3 = this.properties.cameraName) != null ? _ref3 : "front";
       audioFallbackEnabled = (_ref4 = this.properties.audioFallbackEnabled) != null ? _ref4 : audioFallbackEnabled;
@@ -895,7 +896,7 @@ TBSession = (function() {
   };
 
   TBSession.prototype.sessionConnected = function(event) {
-    document.addEventListener('scroll', OTOnScrollEvent, true);
+    pdebug("sessionConnectedHandler", event);
     OTDomObserver.observe(document, {
       childList: true,
       attributes: true,
@@ -914,7 +915,6 @@ TBSession = (function() {
 
   TBSession.prototype.sessionDisconnected = function(event) {
     var sessionDisconnectedEvent;
-    document.removeEventListener('scroll', OTOnScrollEvent);
     OTDomObserver.disconnect();
     this.alreadyPublishing = false;
     sessionDisconnectedEvent = new TBEvent("sessionDisconnected");
@@ -1175,7 +1175,6 @@ TBSubscriber = (function() {
   }
 
   TBSubscriber.prototype.eventReceived = function(response) {
-    pdebug("subscriber event received", response);
     if (typeof this[response.eventType] === "function") {
       return this[response.eventType](response.data);
     } else {
