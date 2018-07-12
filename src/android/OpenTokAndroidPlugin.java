@@ -446,7 +446,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
         public void removeStreamView() {
             this.removeView();
-            if(mSubscriber != null) {
+            if(mSubscriber != null && !isDisconnecting) {
                 try {
                     mSession.unsubscribe(mSubscriber);
                     mSubscriber.destroy();
