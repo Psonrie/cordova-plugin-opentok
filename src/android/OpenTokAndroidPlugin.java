@@ -261,6 +261,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             String frameRate = "FPS_30";
             String resolution = "MEDIUM";
             String cameraName = "front";
+            String fitMode = BaseVideoRenderer.STYLE_VIDEO_FILL;
             try {
                 publisherName = this.mProperty.getString(0);
                 audioBitrate = this.mProperty.getInt(12);
@@ -271,6 +272,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 publishVideo = this.mProperty.getString(7).equals("true");
                 publishAudio = this.mProperty.getString(6).equals("true");
                 cameraName = this.mProperty.getString(8).equals("back") ? "back" : cameraName;
+                fitMode = this.mProperty.getString(17).equals("contain") ? BaseVideoRenderer.STYLE_VIDEO_FIT : fitMode;
                 if (compareStrings(this.mProperty.getString(16), "1280x720")) {
                     resolution = "HIGH";
                 }
@@ -292,7 +294,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             mPublisher.setCameraListener(this);
             mPublisher.setPublisherListener(this);
             mPublisher.setAudioLevelListener(this);
-            mPublisher.setStyle(BaseVideoRenderer.STYLE_VIDEO_SCALE, BaseVideoRenderer.STYLE_VIDEO_FILL);
+            mPublisher.setStyle(BaseVideoRenderer.STYLE_VIDEO_SCALE, fitMode);
             mPublisher.setAudioFallbackEnabled(audioFallbackEnabled);
             mPublisher.setPublishVideo(publishVideo);
             mPublisher.setPublishAudio(publishAudio);
@@ -427,6 +429,13 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
         public RunnableSubscriber(JSONArray args, Stream stream) {
             this.mProperty = args;
+
+            String fitMode = BaseVideoRenderer.STYLE_VIDEO_FILL;
+            try {
+                fitMode = this.mProperty.getString(10).equals("contain") ? BaseVideoRenderer.STYLE_VIDEO_FIT : fitMode;
+            } catch (Exception e) {
+                Log.i(TAG, "Unable to set subscriber properties");
+            }
             mStream = stream;
 
             logMessage("NEW SUBSCRIBER BEING CREATED");
@@ -434,7 +443,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             mSubscriber.setVideoListener(this);
             mSubscriber.setSubscriberListener(this);
             mSubscriber.setAudioLevelListener(this);
-            mSubscriber.setStyle(BaseVideoRenderer.STYLE_VIDEO_SCALE, BaseVideoRenderer.STYLE_VIDEO_FILL);
+            mSubscriber.setStyle(BaseVideoRenderer.STYLE_VIDEO_SCALE, fitMode);
 
             mSession.subscribe(mSubscriber);
             cordova.getActivity().runOnUiThread(this);
