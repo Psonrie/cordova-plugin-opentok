@@ -41,5 +41,8 @@
   "bugs": {
     "url": "https://github.com/opentok/cordova-plugin-opentok/issues"
   },
-  "homepage": "https://github.com/opentok/cordova-plugin-opentok#readme"
+  "homepage": "https://github.com/opentok/cordova-plugin-opentok#readme",
+  "scripts": {
+    "build": "node_modules/grunt"
+  }
 }

@@ -31,7 +31,7 @@ class TBPublisher
     videoSource = "true"
     frameRate = 30
     resolution = "640X480"
-    styleVideoScale = "fill"
+    fitMode = "cover"
     insertMode = "replace"
     if @properties?
       width = @properties.width ? @position.width
@@ -44,7 +44,7 @@ class TBPublisher
       videoSource = @properties.videoSource ? videoSource
       frameRate = @properties.frameRate ? frameRate
       resolution = @properties.resolution ? resolution
-      styleVideoScale = @properties.styleVideoScale ? styleVideoScale
+      fitMode = @properties.fitMode ? fitMode
       if(@properties.publishAudio? and @properties.publishAudio==false)
         publishAudio="false"
       if(@properties.publishVideo? and @properties.publishVideo==false)
@@ -66,7 +66,7 @@ class TBPublisher
       height = 0;
     @position = getPosition(@pubElement)
     OT.getHelper().eventing(@)
-    Cordova.exec(TBSuccess, TBError, OTPlugin, "initPublisher", [name, @position.top, @position.left, width, height, zIndex, publishAudio, publishVideo, cameraName, ratios.widthRatio, ratios.heightRatio, audioFallbackEnabled, audioBitrate, audioSource, videoSource, frameRate, resolution, styleVideoScale] )
+    Cordova.exec(TBSuccess, TBError, OTPlugin, "initPublisher", [name, @position.top, @position.left, width, height, zIndex, publishAudio, publishVideo, cameraName, ratios.widthRatio, ratios.heightRatio, audioFallbackEnabled, audioBitrate, audioSource, videoSource, frameRate, resolution, fitMode] )
     Cordova.exec(@eventReceived, TBSuccess, OTPlugin, "addEvent", ["publisherEvents"] )
   setSession: (session) =>
     @session = session
