@@ -63,7 +63,6 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
     public static final String TAG = "OTPlugin";
     public boolean sessionConnected;
     public boolean publishCalled; // we need this because creating publisher before sessionConnected = crash
-    public boolean isDisconnecting;
     public RunnablePublisher myPublisher;
     public HashMap<String, CallbackContext> myEventListeners;
     public HashMap<String, Connection> connectionCollection;
@@ -455,7 +454,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
         public void removeStreamView() {
             this.removeView();
-            if(mSubscriber != null && !isDisconnecting) {
+            if(mSubscriber != null) {
                 try {
                     mSession.unsubscribe(mSubscriber);
                     mSubscriber.destroy();
