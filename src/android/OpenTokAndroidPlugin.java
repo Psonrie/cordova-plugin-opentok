@@ -47,6 +47,7 @@ import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
 import com.opentok.android.BaseVideoRenderer;
 import com.opentok.android.BaseVideoCapturer;
+import com.tokbox.cordova.OpenTokCustomVideoRenderer;
 
 public class OpenTokAndroidPlugin extends CordovaPlugin
         implements  Session.SessionListener,
@@ -257,7 +258,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             boolean publishVideo = true;
             int audioBitrate = 40000;
             String publisherName = "Android-Cordova-Publisher";
-            String frameRate = "FPS_30";
+            String frameRate = "FPS_15";
             String resolution = "MEDIUM";
             String cameraName = "front";
             String fitMode = BaseVideoRenderer.STYLE_VIDEO_FILL;
@@ -275,7 +276,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 if (compareStrings(this.mProperty.getString(16), "1280x720")) {
                     resolution = "HIGH";
                 }
-                if (compareStrings(this.mProperty.getString(16), "320x240")) {
+                if (compareStrings(this.mProperty.getString(16), "320x240") || compareStrings(this.mProperty.getString(16), "352x288")) {
                     resolution = "LOW";
                 }
                 Log.i(TAG, "publisher properties sanitized");
@@ -289,6 +290,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                     .audioBitrate(audioBitrate)
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
                     .resolution(Publisher.CameraCaptureResolution.valueOf(resolution))
+                    .renderer(new OpenTokCustomVideoRenderer(cordova.getActivity().getApplicationContext()))
                     .build();
             mPublisher.setCameraListener(this);
             mPublisher.setPublisherListener(this);
@@ -346,6 +348,10 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             }
         }
 
+        public void getImgData(CallbackContext callbackContext) {
+            ((OpenTokCustomVideoRenderer) mPublisher.getRenderer()).getSnapshot(callbackContext);
+        }
+
         public void run() {
             if(this.mView == null) {
                 this.mView = mPublisher.getView();
@@ -371,7 +377,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         public void onStreamCreated(PublisherKit arg0, Stream arg1) {
             Log.i(TAG, "publisher stream received");
             streamCollection.put(arg1.getStreamId(), arg1);
-            
+
             streamHasAudio.put(arg1.getStreamId(), arg1.hasAudio());
             streamHasVideo.put(arg1.getStreamId(), arg1.hasVideo());
             JSONObject videoDimensions = new JSONObject();
@@ -438,7 +444,9 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             mStream = stream;
 
             logMessage("NEW SUBSCRIBER BEING CREATED");
-            mSubscriber = new Subscriber(cordova.getActivity(), mStream);
+            mSubscriber = new Subscriber.Builder(cordova.getActivity().getApplicationContext(), mStream)
+                    .renderer(new OpenTokCustomVideoRenderer(cordova.getActivity().getApplicationContext()))
+                    .build();
             mSubscriber.setVideoListener(this);
             mSubscriber.setSubscriberListener(this);
             mSubscriber.setAudioLevelListener(this);
@@ -477,6 +485,10 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 Log.i(TAG, "subscriber view is added to parent view!");
             }
             super.run();
+        }
+
+        public void getImgData(CallbackContext callbackContext) {
+            ((OpenTokCustomVideoRenderer) mSubscriber.getRenderer()).getSnapshot(callbackContext);
         }
 
         @Override
@@ -666,7 +678,6 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             Log.i(TAG, "adding new event - " + args.getString(0));
             myEventListeners.put(args.getString(0), callbackContext);
         } else if (action.equals("connect")) {
-            isDisconnecting = false;
             Log.i(TAG, "connect command called");
             mSession.connect(args.getString(0));
         } else if (action.equals("disconnect")) {
@@ -770,6 +781,26 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 runsub.mProperty.put(4, height);
 
                 runsub.setPosition();
+            }
+        } else if (action.equals("getImgData")) {
+            if (args.getString(0).equals("TBPublisher") && myPublisher != null && sessionConnected) {
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                      myPublisher.getImgData(callbackContext);
+                    }
+                });
+                return true;
+            } else {
+                RunnableSubscriber runsub = subscriberCollection.get(args.getString(0));
+                if (runsub != null) {
+                  cordova.getThreadPool().execute(new Runnable() {
+                      public void run() {
+                         runsub.getImgData(callbackContext);
+                      }
+                  });
+                  runsub.getImgData(callbackContext);
+                  return true;
+                }
             }
         } else if (action.equals("exceptionHandler")) {
 
@@ -1005,7 +1036,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
     @Override
     public void onStreamVideoDimensionsChanged(Session session, Stream stream, int width, int height) {
         JSONObject oldValue = this.streamVideoDimensions.get(stream.getStreamId());
-        
+
         JSONObject newValue = new JSONObject();
         try {
             newValue.put("width", width);
@@ -1079,7 +1110,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                     JSONObject payload = new JSONObject();
                     try {
                         payload.put("platform", "Android");
-                        payload.put("cp_version", "3.3.0");
+                        payload.put("cp_version", "3.4.3");
                     } catch (JSONException e) {
                         Log.i(TAG, "Error creating payload json object");
                     }
@@ -1088,11 +1119,11 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                     params.put("partner_id", apiKey);
                     params.put("payload", payload.toString());
                     params.put("source", "https://github.com/opentok/cordova-plugin-opentok");
-                    params.put("build", "2.14.0");
+                    params.put("build", "2.16.2");
                     params.put("session_id", sessionId);
                     if (connectionId != null) {
                         params.put("action", "cp_on_connect");
-                        params.put("connectionId", connectionId);                
+                        params.put("connectionId", connectionId);
                     } else {
                         params.put("action", "cp_initialize");
                     }
