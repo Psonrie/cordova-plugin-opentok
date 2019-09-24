@@ -4,7 +4,7 @@
 #     stream (Stream) - stream to which you are subscribing
 #   Methods: 
 #     getAudioVolume()
-#     getImgData() : String
+#     getImgData(callback)
 #     getStyle() : Objects
 #     off( type, listener ) : objects
 #     on( type, listener ) : objects
@@ -15,8 +15,11 @@
 class TBSubscriber
   getAudioVolume: ->
     return 0
-  getImgData: ->
-    return ""
+  getImgData: (callback) ->
+    errorCb = (error) -> callback(error)
+    successCb = (img) -> callback(null, img)
+    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [this.streamId]);
+    return @
   getStyle: ->
     return {}
   setAudioVolume:(value) ->
@@ -80,7 +83,7 @@ class TBSubscriber
     OT.getHelper().eventing(@)
     Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribe", [stream.streamId, position.top, position.left, width, height, zIndex, subscribeToAudio, subscribeToVideo, ratios.widthRatio, ratios.heightRatio, fitMode] )
     Cordova.exec(@eventReceived, TBSuccess, OTPlugin, "addEvent", ["subscriberEvents"] )
-
+    OT.updateViews()
   eventReceived: (response) =>
     if typeof @[response.eventType] == "function"
       @[response.eventType](response.data)
@@ -121,6 +124,7 @@ class TBSubscriber
   audioLevelUpdated: (event) =>
     streamEvent = new TBEvent("audioLevelUpdated")
     streamEvent.audioLevel = event.audioLevel
+    @dispatchEvent(streamEvent)
     return @
 
   # deprecating
