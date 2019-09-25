@@ -681,6 +681,12 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             Log.i(TAG, "connect command called");
             mSession.connect(args.getString(0));
         } else if (action.equals("disconnect")) {
+            for (Map.Entry<String, RunnableSubscriber> entry : subscriberCollection.entrySet()) {
+                entry.getValue().removeStreamView();
+            }
+            subscriberCollection.clear();
+            connectionCollection.clear();
+            streamCollection.clear();
             myPublisher.destroyPublisher();
             mSession.disconnect();
         } else if (action.equals("publish")) {
@@ -870,20 +876,6 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
     @Override
     public void onDisconnected(Session arg0) {
         sessionConnected = false;
-
-        if (myPublisher != null) {
-            myPublisher.destroyPublisher();
-            myPublisher = null;
-        }
-
-        for (Map.Entry<String, RunnableSubscriber> entry : subscriberCollection.entrySet()) {
-            entry.getValue().removeStreamView();
-        }
-
-        // delete all data and prevent updateviews from drawing non existent things
-        subscriberCollection.clear();
-        connectionCollection.clear();
-        streamCollection.clear();
 
         JSONObject data = new JSONObject();
         try {
