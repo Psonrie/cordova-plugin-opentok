@@ -1,3 +1,21 @@
+var DefaultHeight, DefaultWidth, OTPlugin, PublisherStreamId, PublisherTypeClass, StringSplitter, SubscriberTypeClass, VideoContainerClass;
+
+OTPlugin = "OpenTokPlugin";
+
+PublisherStreamId = "TBPublisher";
+
+PublisherTypeClass = "OT_publisher";
+
+SubscriberTypeClass = "OT_subscriber";
+
+VideoContainerClass = "OT_video-container";
+
+StringSplitter = "$2#9$";
+
+DefaultWidth = 264;
+
+DefaultHeight = 198;
+
 window.OT = {
   timeStreamCreated: {},
   checkSystemRequirements: function() {
@@ -1277,24 +1295,6 @@ TBSubscriber = (function() {
   return TBSubscriber;
 
 })();
-
-var DefaultHeight, DefaultWidth, OTPlugin, PublisherStreamId, PublisherTypeClass, StringSplitter, SubscriberTypeClass, VideoContainerClass;
-
-OTPlugin = "OpenTokPlugin";
-
-PublisherStreamId = "TBPublisher";
-
-PublisherTypeClass = "OT_publisher";
-
-SubscriberTypeClass = "OT_subscriber";
-
-VideoContainerClass = "OT_video-container";
-
-StringSplitter = "$2#9$";
-
-DefaultWidth = 264;
-
-DefaultHeight = 198;
 ;/**
  * @license  Common JS Helpers on OpenTok 0.2.0 1f056b9 master
  * http://www.tokbox.com/
