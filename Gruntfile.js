@@ -18,7 +18,7 @@ module.exports = function(grunt) {
           bare: true
         },
         files: {
-          "./www/opentok.js" : "./src/js/*.coffee"
+          "./www/opentok.js" : ["./src/js/constants.coffee", "./src/js/OT*.coffee"]
         }
       }
     },
