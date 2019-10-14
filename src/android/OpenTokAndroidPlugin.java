@@ -491,6 +491,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             super.run();
         }
 
+        // client#823
         //public void getImgData(CallbackContext callbackContext) {
             //((OpenTokCustomVideoRenderer) mSubscriber.getRenderer()).getSnapshot(callbackContext);
         //}
