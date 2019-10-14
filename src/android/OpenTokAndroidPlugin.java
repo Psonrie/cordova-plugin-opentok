@@ -47,7 +47,6 @@ import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
 import com.opentok.android.BaseVideoRenderer;
 import com.opentok.android.BaseVideoCapturer;
-import com.tokbox.cordova.OpenTokCustomVideoRenderer;
 
 public class OpenTokAndroidPlugin extends CordovaPlugin
         implements  Session.SessionListener,
@@ -290,7 +289,6 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                     .audioBitrate(audioBitrate)
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
                     .resolution(Publisher.CameraCaptureResolution.valueOf(resolution))
-                    .renderer(new OpenTokCustomVideoRenderer(cordova.getActivity().getApplicationContext()))
                     .build();
             mPublisher.setCameraListener(this);
             mPublisher.setPublisherListener(this);
@@ -349,7 +347,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         }
 
         public void getImgData(CallbackContext callbackContext) {
-            ((OpenTokCustomVideoRenderer) mPublisher.getRenderer()).getSnapshot(callbackContext);
+           // ((OpenTokCustomVideoRenderer) mPublisher.getRenderer()).getSnapshot(callbackContext);
         }
 
         public void run() {
@@ -445,7 +443,6 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
             logMessage("NEW SUBSCRIBER BEING CREATED");
             mSubscriber = new Subscriber.Builder(cordova.getActivity().getApplicationContext(), mStream)
-                    .renderer(new OpenTokCustomVideoRenderer(cordova.getActivity().getApplicationContext()))
                     .build();
             mSubscriber.setVideoListener(this);
             mSubscriber.setSubscriberListener(this);
@@ -488,7 +485,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         }
 
         public void getImgData(CallbackContext callbackContext) {
-            ((OpenTokCustomVideoRenderer) mSubscriber.getRenderer()).getSnapshot(callbackContext);
+            // ((OpenTokCustomVideoRenderer) mSubscriber.getRenderer()).getSnapshot(callbackContext);
         }
 
         @Override
