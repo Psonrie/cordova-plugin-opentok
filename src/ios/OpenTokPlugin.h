@@ -34,7 +34,9 @@
 - (void)publishVideo:(CDVInvokedUrlCommand*)command;
 - (void)setCameraPosition:(CDVInvokedUrlCommand*)command;
 - (void)destroyPublisher:(CDVInvokedUrlCommand*)command;
-- (void)getImgData:(CDVInvokedUrlCommand*)command;
+
+// client#823
+//- (void)getImgData:(CDVInvokedUrlCommand*)command;
 
 // Session
 - (void)connect:(CDVInvokedUrlCommand*)command;

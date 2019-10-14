@@ -97,9 +97,10 @@ class TBPublisher
     if(@pubElement)
       Cordova.exec( @removePublisherElement, TBError, OTPlugin, "destroyPublisher", [])
   getImgData: (callback) ->
-    errorCb = (error) -> callback(error)
-    successCb = (img) -> callback(null, img)
-    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [PublisherStreamId]);
+#    errorCb = (error) -> callback(error)
+#    successCb = (img) -> callback(null, img)
+#    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [PublisherStreamId]);
+    callback(new Error('disabled due to custom renderer bug (client#823'));
     return @
   getStyle: ->
     return {}

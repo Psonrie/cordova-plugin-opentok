@@ -328,27 +328,29 @@
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
-- (void)getImgData:(CDVInvokedUrlCommand*)command{
-    NSString* sid = [command.arguments objectAtIndex:0];
-    NSString *snapshot;
-    OTSubscriber * subscriber;
 
-    if ([sid isEqualToString:@"TBPublisher"]) {
-        if (_publisher.view) {
-            snapshot = [self getBase64PNGFromUIView: _publisher.view];
-        }
-    } else {
-        subscriber = [subscriberDictionary objectForKey:sid];
-        if (subscriber) {
-            snapshot = [self getBase64PNGFromUIView: subscriber.view];
-        }
-    }
-
-    CDVPluginResult* callbackResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                        messageAsString: snapshot];
-    [callbackResult setKeepCallbackAsBool:YES];
-    [self.commandDelegate sendPluginResult:callbackResult callbackId:command.callbackId];
-}
+// client#823
+//- (void)getImgData:(CDVInvokedUrlCommand*)command{
+//    NSString* sid = [command.arguments objectAtIndex:0];
+//    NSString *snapshot;
+//    OTSubscriber * subscriber;
+//
+//    if ([sid isEqualToString:@"TBPublisher"]) {
+//        if (_publisher.view) {
+//            snapshot = [self getBase64PNGFromUIView: _publisher.view];
+//        }
+//    } else {
+//        subscriber = [subscriberDictionary objectForKey:sid];
+//        if (subscriber) {
+//            snapshot = [self getBase64PNGFromUIView: subscriber.view];
+//        }
+//    }
+//
+//    CDVPluginResult* callbackResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+//                                                        messageAsString: snapshot];
+//    [callbackResult setKeepCallbackAsBool:YES];
+//    [self.commandDelegate sendPluginResult:callbackResult callbackId:command.callbackId];
+//}
 
 #pragma mark Subscriber Methods
 - (void)subscribeToAudio:(CDVInvokedUrlCommand*)command{

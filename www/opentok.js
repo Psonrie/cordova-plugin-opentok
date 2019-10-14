@@ -568,14 +568,7 @@ TBPublisher = (function() {
   };
 
   TBPublisher.prototype.getImgData = function(callback) {
-    var errorCb, successCb;
-    errorCb = function(error) {
-      return callback(error);
-    };
-    successCb = function(img) {
-      return callback(null, img);
-    };
-    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [PublisherStreamId]);
+    callback(new Error('disabled due to custom renderer bug (client#823'));
     return this;
   };
 
@@ -1107,14 +1100,7 @@ TBSubscriber = (function() {
   };
 
   TBSubscriber.prototype.getImgData = function(callback) {
-    var errorCb, successCb;
-    errorCb = function(error) {
-      return callback(error);
-    };
-    successCb = function(img) {
-      return callback(null, img);
-    };
-    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [this.streamId]);
+    callback(new Error('disabled due to custom renderer bug (client#823'));
     return this;
   };
 

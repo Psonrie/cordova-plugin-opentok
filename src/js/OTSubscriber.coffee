@@ -16,9 +16,10 @@ class TBSubscriber
   getAudioVolume: ->
     return 0
   getImgData: (callback) ->
-    errorCb = (error) -> callback(error)
-    successCb = (img) -> callback(null, img)
-    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [this.streamId]);
+#    errorCb = (error) -> callback(error)
+#    successCb = (img) -> callback(null, img)
+#    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [this.streamId]);
+    callback(new Error('disabled due to custom renderer bug (client#823'));
     return @
   getStyle: ->
     return {}
