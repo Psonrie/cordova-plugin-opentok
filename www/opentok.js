@@ -269,12 +269,10 @@ TBUpdateObjects = function() {
       streamId = e.dataset.streamid;
       position = getPosition(e);
       zIndex = TBGetZIndex(e);
-      if (!e.TBPosition || position.top !== e.TBPosition.top || position.left !== e.TBPosition.left || position.width !== e.TBPosition.width || position.height !== e.TBPosition.height || zIndex !== e.TBZIndex) {
-        console.log("JS: Object updated with sessionId " + streamId + " updated");
-        e.TBPosition = position;
-        e.TBZIndex = zIndex;
-        return Cordova.exec(TBSuccess, TBError, OTPlugin, "updateView", [streamId, position.top, position.left, position.width, position.height, zIndex, ratios.widthRatio, ratios.heightRatio]);
-      }
+      console.log("JS: Object updated with sessionId " + streamId + " updated");
+      e.TBPosition = position;
+      e.TBZIndex = zIndex;
+      return Cordova.exec(TBSuccess, TBError, OTPlugin, "updateView", [streamId, position.top, position.left, position.width, position.height, zIndex, ratios.widthRatio, ratios.heightRatio]);
     }, time);
   };
   objects = document.getElementsByClassName('OT_root');
