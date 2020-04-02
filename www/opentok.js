@@ -1,3 +1,4 @@
+// define constants
 var DefaultHeight, DefaultWidth, OTPlugin, PublisherStreamId, PublisherTypeClass, StringSplitter, SubscriberTypeClass, VideoContainerClass;
 
 OTPlugin = "OpenTokPlugin";
@@ -16,8 +17,20 @@ DefaultWidth = 264;
 
 DefaultHeight = 198;
 
+// TB Object:
+//   Methods: 
+//     TB.checkSystemRequirements() :number
+//     TB.initPublisher( apiKey:String [, replaceElementId:String] [, properties:Object] ):Publisher
+//     TB.initSession( apiKey, sessionId ):Session 
+//     TB.log( message )
+//     TB.off( type:String, listener:Function )
+//     TB.on( type:String, listener:Function )
+//  Methods that doesn't do anything:
+//     TB.setLogLevel(logLevel:String)
+//     TB.upgradeSystemRequirements()
 window.OT = {
   timeStreamCreated: {},
+  currentlyUpdating: {},
   checkSystemRequirements: function() {
     return 1;
   },
@@ -34,8 +47,9 @@ window.OT = {
     return pdebug("TB LOG", message);
   },
   off: function(event, handler) {},
+  //todo
   on: function(event, handler) {
-    if (event === "exception") {
+    if (event === "exception") { // TB object only dispatches one type of event
       console.log("JS: TB Exception Handler added");
       return Cordova.exec(handler, TBError, OTPlugin, "exceptionHandler", []);
     }
@@ -49,6 +63,7 @@ window.OT = {
   updateViews: function() {
     return TBUpdateObjects();
   },
+  // helpers
   getHelper: function() {
     if (typeof jasmine === "undefined" || !jasmine || !jasmine['getEnv']) {
       window.jasmine = {
@@ -58,6 +73,7 @@ window.OT = {
     this.OTHelper = this.OTHelper || OTHelpers.noConflict();
     return this.OTHelper;
   },
+  // deprecating
   showError: function(a) {
     return alert(a);
   },
@@ -81,45 +97,55 @@ document.addEventListener("deviceready", (function() {
   return Cordova.exec(TBSuccess, TBError, OTPlugin, "hasStatusBarPlugin", [window.hasOwnProperty("StatusBar")]);
 }), false);
 
+// Connection Object:
+//   Properties:
+//     id( String) - id of this connection
+//     creationTime( number ) - timestamp for creation of the connection ( in milliseconds )
+//     data ( string ) - string containing metadata describing the connection
 var TBConnection;
 
-TBConnection = (function() {
-  function TBConnection(prop) {
+TBConnection = class TBConnection {
+  constructor(prop) {
     this.connectionId = prop.connectionId;
     this.creationTime = prop.creationTime;
     this.data = prop.data;
     return;
   }
 
-  TBConnection.prototype.toJSON = function() {
+  toJSON() {
     return {
       connectionId: this.connectionId,
       creationTime: this.creationTime,
       data: this.data
     };
-  };
+  }
 
-  return TBConnection;
+};
 
-})();
-
+// Error Object
+//   Properties
+//     code (number)  - The error code, defining the error.
+//     message (String) - The message string provides details about the error. 
 var OTError;
 
 OTError = (function() {
   var codesToTitle;
 
-  function OTError(errCode, errMsg) {
-    this.code = errCode;
-    if (errMsg != null) {
-      this.message = errMsg;
-    } else {
-      if (codesToTitle[errCode]) {
-        this.message = codesToTitle[errCode];
+  class OTError {
+    constructor(errCode, errMsg) {
+      this.code = errCode;
+      if (errMsg != null) {
+        this.message = errMsg;
       } else {
-        this.message = "OpenTok Error";
+        if (codesToTitle[errCode]) {
+          this.message = codesToTitle[errCode];
+        } else {
+          this.message = "OpenTok Error";
+        }
       }
     }
-  }
+
+  };
 
   codesToTitle = {
     1004: 'OTAuthorizationFailure',
@@ -153,40 +179,44 @@ OTError = (function() {
 
   return OTError;
 
-})();
+}).call(this);
 
-var TBEvent,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+var TBEvent;
 
-TBEvent = (function() {
-  function TBEvent(type, cancelable) {
-    this.preventDefault = __bind(this.preventDefault, this);
-    this.isDefaultPrevented = __bind(this.isDefaultPrevented, this);
+TBEvent = class TBEvent {
+  constructor(type, cancelable) {
+    this.isDefaultPrevented = this.isDefaultPrevented.bind(this);
+    this.preventDefault = this.preventDefault.bind(this);
     this.type = type;
     this.cancelable = cancelable !== void 0 ? cancelable : true;
     this._defaultPrevented = false;
     return;
   }
 
-  TBEvent.prototype.isDefaultPrevented = function() {
+  isDefaultPrevented() {
     return this._defaultPrevented;
-  };
+  }
 
-  TBEvent.prototype.preventDefault = function() {
+  preventDefault() {
     if (this.cancelable) {
       this._defaultPrevented = true;
     } else {
       console.log("Event.preventDefault: Trying to prevent default on an Event that isn't cancelable");
     }
-  };
+  }
 
-  return TBEvent;
-
-})();
+};
 
 var MutationObserver, OTDomObserver, OTObserveVideoContainer, OTOnScrollEvent, OTPublisherError, OTReplacePublisher, TBError, TBGenerateDomHelper, TBGetScreenRatios, TBGetZIndex, TBSuccess, TBUpdateObjects, getPosition, pdebug, replaceWithVideoStream, streamElements;
 
-streamElements = {};
+streamElements = {}; // keep track of DOM elements for each stream
+
+
+// Whenever updateViews are involved, parameters passed through will always have:
+// TBPublisher constructor, TBUpdateObjects, TBSubscriber constructor
+// [id, top, left, width, height, zIndex, ... ]
+
+// Helper methods
 
 getPosition = function(pubDiv) {
   if (!pubDiv) {
@@ -203,7 +233,7 @@ replaceWithVideoStream = function(element, streamId, properties) {
   } else {
     newElement = document.createElement("div");
   }
-  newElement.setAttribute("class", "OT_root " + typeClass);
+  newElement.setAttribute("class", `OT_root ${typeClass}`);
   newElement.setAttribute("data-streamid", streamId);
   newElement.setAttribute("data-insertMode", properties.insertMode);
   if (typeof properties.width === 'string') {
@@ -228,6 +258,7 @@ replaceWithVideoStream = function(element, streamId, properties) {
   videoElement = document.createElement("video");
   videoElement.style.width = "100%";
   videoElement.style.height = "100%";
+  // todo: js change styles or append css stylesheets? Concern: users will not be able to change via css
   internalDiv.appendChild(videoElement);
   newElement.appendChild(internalDiv);
   if (properties.insertMode === "append") {
@@ -260,7 +291,7 @@ OTPublisherError = function(error) {
 };
 
 TBUpdateObjects = function() {
-  var e, objects, streamId, time, updateObject, _i, _len;
+  var e, i, len, objects, streamId, time, updateObject;
   console.log("JS: Objects being updated in TBUpdateObjects");
   updateObject = function(e, time) {
     setTimeout(function() {
@@ -272,21 +303,27 @@ TBUpdateObjects = function() {
       console.log("JS: Object updated with sessionId " + streamId + " updated");
       e.TBPosition = position;
       e.TBZIndex = zIndex;
-      return Cordova.exec(TBSuccess, TBError, OTPlugin, "updateView", [streamId, position.top, position.left, position.width, position.height, zIndex, ratios.widthRatio, ratios.heightRatio]);
+      delete OT.currentlyUpdating[streamId];
+      return Cordova.exec(TBSuccess, TBError, OTPlugin, "updateView", [streamId, position.top, position.left, position.width || 1, position.height || 1, zIndex, ratios.widthRatio, ratios.heightRatio]);
     }, time);
   };
   objects = document.getElementsByClassName('OT_root');
-  for (_i = 0, _len = objects.length; _i < _len; _i++) {
-    e = objects[_i];
+  for (i = 0, len = objects.length; i < len; i++) {
+    e = objects[i];
     streamId = e.dataset.streamid;
-    time = 0;
-    if (typeof window.angular !== "undefined" || typeof window.Ionic !== "undefined") {
-      if (OT.timeStreamCreated[streamId]) {
-        time = performance.now() - OT.timeStreamCreated[streamId];
-        delete OT.timeStreamCreated[streamId];
+    if (!OT.currentlyUpdating[streamId]) {
+      OT.currentlyUpdating[streamId] = true;
+      time = 0;
+      if (typeof window.angular !== "undefined" || typeof window.Ionic !== "undefined") {
+        if (OT.timeStreamCreated[streamId]) {
+          time = performance.now() - OT.timeStreamCreated[streamId];
+          delete OT.timeStreamCreated[streamId];
+        }
       }
+      updateObject(e, time);
+    } else {
+      console.log("JS: Object with sessionId " + streamId + " already being updated");
     }
-    updateObject(e, time);
   }
 };
 
@@ -313,16 +350,18 @@ TBGetZIndex = function(ele) {
 
 TBGetScreenRatios = function() {
   return {
+    // Ratio between browser window size and viewport size
     widthRatio: window.outerWidth / window.innerWidth,
     heightRatio: window.outerHeight / window.innerHeight
   };
 };
 
 OTReplacePublisher = function() {
-  var attribute, attributes, childClass, childElement, el, elAttribute, element, elementChildren, elements, _i, _j, _k, _len, _len1, _len2;
+  var attribute, attributes, childClass, childElement, el, elAttribute, element, elementChildren, elements, i, j, k, len, len1, len2;
+  // replace publisher because permission denied
   elements = document.getElementsByClassName('OT_root OT_publisher');
-  for (_i = 0, _len = elements.length; _i < _len; _i++) {
-    el = elements[_i];
+  for (i = 0, len = elements.length; i < len; i++) {
+    el = elements[i];
     elAttribute = el.getAttribute('data-streamid');
     if (elAttribute === "TBPublisher") {
       element = el;
@@ -331,12 +370,12 @@ OTReplacePublisher = function() {
   }
   attributes = ['style', 'data-streamid', 'class'];
   elementChildren = element.childNodes;
-  for (_j = 0, _len1 = attributes.length; _j < _len1; _j++) {
-    attribute = attributes[_j];
+  for (j = 0, len1 = attributes.length; j < len1; j++) {
+    attribute = attributes[j];
     element.removeAttribute(attribute);
   }
-  for (_k = 0, _len2 = elementChildren.length; _k < _len2; _k++) {
-    childElement = elementChildren[_k];
+  for (k = 0, len2 = elementChildren.length; k < len2; k++) {
+    childElement = elementChildren[k];
     childClass = childElement.getAttribute('class');
     if (childClass === 'OT_video-container') {
       element.removeChild(childElement);
@@ -348,30 +387,38 @@ OTReplacePublisher = function() {
 OTObserveVideoContainer = (function() {
   var videoContainerObserver;
   videoContainerObserver = new MutationObserver(function(mutations) {
-    var mutation, _i, _len, _results;
-    _results = [];
-    for (_i = 0, _len = mutations.length; _i < _len; _i++) {
-      mutation = mutations[_i];
+    var i, len, mutation, results;
+    results = [];
+    for (i = 0, len = mutations.length; i < len; i++) {
+      mutation = mutations[i];
       if (mutation.attributeName === 'style' || mutation.attributeName === 'class') {
-        _results.push(TBUpdateObjects());
+        results.push(TBUpdateObjects());
       } else {
-        _results.push(void 0);
+        results.push(void 0);
       }
     }
-    return _results;
+    return results;
   });
   return function(videoContainer) {
+    // If already observed, just update, else observe.
     if (videoContainer._OTObserved) {
       return TBUpdateObjects(videoContainer);
     } else {
       videoContainer._OTObserved = true;
       return videoContainerObserver.observe(videoContainer, {
+        // Set to true if additions and removals of the target node's child elements (including text nodes) are to be observed.
         childList: false,
+        // Set to true if mutations to target's attributes are to be observed.
         attributes: true,
+        // Set to true if mutations to target's data are to be observed.
         characterData: false,
+        // Set to true if mutations to not just target, but also target's descendants are to be observed.
         subtree: true,
+        // Set to true if attributes is set to true and target's attribute value before the mutation needs to be recorded.
         attributeOldValue: false,
+        // Set to true if characterData is set to true and target's data before the mutation needs to be recorded.
         characterDataOldValue: false,
+        // Set to an array of attribute local names (without namespace) if not all attribute mutations need to be observed.
         attributeFilter: ['style', 'class']
       });
     }
@@ -381,7 +428,7 @@ OTObserveVideoContainer = (function() {
 MutationObserver = MutationObserver || WebKitMutationObserver;
 
 OTDomObserver = new MutationObserver(function(mutations) {
-  var checkNewNode, checkRemovedNode, getVideoContainer, mutation, node, videoContainer, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
+  var checkNewNode, checkRemovedNode, getVideoContainer, i, j, k, len, len1, len2, mutation, node, ref, ref1, videoContainer;
   getVideoContainer = function(node) {
     var videoElement;
     if (typeof node.querySelector !== 'function') {
@@ -404,8 +451,10 @@ OTDomObserver = new MutationObserver(function(mutations) {
     }
   };
   checkRemovedNode = function(node) {};
-  for (_i = 0, _len = mutations.length; _i < _len; _i++) {
-    mutation = mutations[_i];
+// Stand-in, if we want to trigger things in the future(like emitting events).
+  for (i = 0, len = mutations.length; i < len; i++) {
+    mutation = mutations[i];
+    // Check if its attributes that have changed(including children).
     if (mutation.type === 'attributes') {
       videoContainer = getVideoContainer(mutation.target);
       if (videoContainer) {
@@ -413,52 +462,70 @@ OTDomObserver = new MutationObserver(function(mutations) {
       }
       continue;
     }
+    // Check if there has been addition or deletion of nodes.
     if (mutation.type !== 'childList') {
       continue;
     }
-    _ref = mutation.addedNodes;
-    for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-      node = _ref[_j];
+    ref = mutation.addedNodes;
+    // Check added nodes.
+    for (j = 0, len1 = ref.length; j < len1; j++) {
+      node = ref[j];
       checkNewNode(node);
     }
-    _ref1 = mutation.removedNodes;
-    for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
-      node = _ref1[_k];
+    ref1 = mutation.removedNodes;
+    // Check removed nodes.
+    for (k = 0, len2 = ref1.length; k < len2; k++) {
+      node = ref1[k];
       checkRemovedNode(node);
     }
   }
 });
 
 pdebug = function(msg, data) {
-  return console.log("JS Lib: " + msg + " - ", data);
+  return console.log(`JS Lib: ${msg} - `, data);
 };
 
 OTOnScrollEvent = function(e) {
-  var position, target, video, videos, _i, _len, _results;
+  var i, len, position, results, target, video, videos;
   target = e.target;
   videos = target.querySelectorAll('[data-streamid]');
   if (videos) {
-    _results = [];
-    for (_i = 0, _len = videos.length; _i < _len; _i++) {
-      video = videos[_i];
+    results = [];
+    for (i = 0, len = videos.length; i < len; i++) {
+      video = videos[i];
       position = getPosition(video);
-      _results.push(Cordova.exec(TBSuccess, TBError, OTPlugin, "updateCamera", [video.getAttribute('data-streamid'), position.top, position.left, position.width, position.height]));
+      results.push(Cordova.exec(TBSuccess, TBError, OTPlugin, "updateCamera", [video.getAttribute('data-streamid'), position.top, position.left, position.width, position.height]));
     }
-    return _results;
+    return results;
   }
 };
 
-var TBPublisher,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+// Publisher Object:
+//   Properties:
+//     id (String) — The ID of the DOM element through which the Publisher stream is displayed
+//     stream - The Stream object corresponding to the stream of the publisher
+//     session (Session) — The Session to which the Publisher is publishing a stream. If the Publisher is not publishing a stream to a Session, this property is set to null.
+//     replaceElementId (String) — The ID of the DOM element that was replaced when the Publisher video stream was inserted.
+//   Methods: 
+//     destroy():Publisher - not yet implemented
+//     getImgData(callback)
+//     getStyle() : Object - not yet implemented
+//     off( type, listener )
+//     on( type, listener )
+//     publishAudio(Boolean) : publisher - change publishing state for Audio
+//     publishVideo(Boolean) : publisher - change publishing state for Video
+//     setStyle( style, value ) : publisher - not yet implemented
 
-TBPublisher = (function() {
-  function TBPublisher(one, two) {
-    this.removePublisherElement = __bind(this.removePublisherElement, this);
-    this.streamDestroyed = __bind(this.streamDestroyed, this);
-    this.streamCreated = __bind(this.streamCreated, this);
-    this.eventReceived = __bind(this.eventReceived, this);
-    this.setSession = __bind(this.setSession, this);
-    var audioBitrate, audioFallbackEnabled, audioSource, cameraName, fitMode, frameRate, height, insertMode, name, publishAudio, publishVideo, ratios, resolution, videoSource, width, zIndex, _ref, _ref1, _ref10, _ref11, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
+var TBPublisher;
+
+TBPublisher = class TBPublisher {
+  constructor(one, two) {
+    var audioBitrate, audioFallbackEnabled, audioSource, cameraName, fitMode, frameRate, height, insertMode, name, publishAudio, publishVideo, ratios, ref, ref1, ref10, ref11, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, resolution, videoSource, width, zIndex;
+    this.setSession = this.setSession.bind(this);
+    this.eventReceived = this.eventReceived.bind(this);
+    this.streamCreated = this.streamCreated.bind(this);
+    this.streamDestroyed = this.streamDestroyed.bind(this);
+    this.removePublisherElement = this.removePublisherElement.bind(this);
     this.sanitizeInputs(one, two);
     pdebug("creating publisher", {});
     this.position = getPosition(this.pubElement);
@@ -477,17 +544,17 @@ TBPublisher = (function() {
     fitMode = "cover";
     insertMode = "replace";
     if (this.properties != null) {
-      width = (_ref = this.properties.width) != null ? _ref : this.position.width;
-      height = (_ref1 = this.properties.height) != null ? _ref1 : this.position.height;
-      name = (_ref2 = this.properties.name) != null ? _ref2 : "";
-      cameraName = (_ref3 = this.properties.cameraName) != null ? _ref3 : "front";
-      audioFallbackEnabled = (_ref4 = this.properties.audioFallbackEnabled) != null ? _ref4 : audioFallbackEnabled;
-      audioBitrate = (_ref5 = this.properties.audioBitrate) != null ? _ref5 : audioBitrate;
-      audioSource = (_ref6 = this.properties.audioSource) != null ? _ref6 : audioSource;
-      videoSource = (_ref7 = this.properties.videoSource) != null ? _ref7 : videoSource;
-      frameRate = (_ref8 = this.properties.frameRate) != null ? _ref8 : frameRate;
-      resolution = (_ref9 = this.properties.resolution) != null ? _ref9 : resolution;
-      fitMode = (_ref10 = this.properties.fitMode) != null ? _ref10 : fitMode;
+      width = (ref = this.properties.width) != null ? ref : this.position.width;
+      height = (ref1 = this.properties.height) != null ? ref1 : this.position.height;
+      name = (ref2 = this.properties.name) != null ? ref2 : "";
+      cameraName = (ref3 = this.properties.cameraName) != null ? ref3 : "front";
+      audioFallbackEnabled = (ref4 = this.properties.audioFallbackEnabled) != null ? ref4 : audioFallbackEnabled;
+      audioBitrate = (ref5 = this.properties.audioBitrate) != null ? ref5 : audioBitrate;
+      audioSource = (ref6 = this.properties.audioSource) != null ? ref6 : audioSource;
+      videoSource = (ref7 = this.properties.videoSource) != null ? ref7 : videoSource;
+      frameRate = (ref8 = this.properties.frameRate) != null ? ref8 : frameRate;
+      resolution = (ref9 = this.properties.resolution) != null ? ref9 : resolution;
+      fitMode = (ref10 = this.properties.fitMode) != null ? ref10 : fitMode;
       if ((this.properties.publishAudio != null) && this.properties.publishAudio === false) {
         publishAudio = "false";
       }
@@ -503,7 +570,7 @@ TBPublisher = (function() {
       if ((this.properties.videoSource != null) || this.properties.videoSource === false) {
         videoSource = "false";
       }
-      insertMode = (_ref11 = this.properties.insertMode) != null ? _ref11 : insertMode;
+      insertMode = (ref11 = this.properties.insertMode) != null ? ref11 : insertMode;
     }
     if ((width == null) || width === 0 || (height == null) || height === 0) {
       width = DefaultWidth;
@@ -524,87 +591,91 @@ TBPublisher = (function() {
     Cordova.exec(this.eventReceived, TBSuccess, OTPlugin, "addEvent", ["publisherEvents"]);
   }
 
-  TBPublisher.prototype.setSession = function(session) {
+  setSession(session) {
     return this.session = session;
-  };
+  }
 
-  TBPublisher.prototype.eventReceived = function(response) {
+  eventReceived(response) {
     if (typeof this[response.eventType] === "function") {
       return this[response.eventType](response.data);
     } else {
       return pdebug("No method found for EventType: '" + response.eventType + "'");
     }
-  };
+  }
 
-  TBPublisher.prototype.streamCreated = function(event) {
+  streamCreated(event) {
     var streamEvent;
     this.stream = new TBStream(event.stream, this.session.sessionConnected);
     streamEvent = new TBEvent("streamCreated");
     streamEvent.stream = this.stream;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBPublisher.prototype.streamDestroyed = function(event) {
+  streamDestroyed(event) {
     var streamEvent;
     streamEvent = new TBEvent("streamDestroyed");
     streamEvent.stream = this.stream;
     streamEvent.reason = "clientDisconnected";
     this.dispatchEvent(streamEvent);
+    // remove stream DOM?
     return this;
-  };
+  }
 
-  TBPublisher.prototype.removePublisherElement = function() {
+  removePublisherElement() {
     this.pubElement.parentNode.removeChild(this.pubElement);
     return this.pubElement = false;
-  };
+  }
 
-  TBPublisher.prototype.destroy = function() {
+  destroy() {
     if (this.pubElement) {
       return Cordova.exec(this.removePublisherElement, TBError, OTPlugin, "destroyPublisher", []);
     }
-  };
+  }
 
-  TBPublisher.prototype.getImgData = function(callback) {
+  getImgData(callback) {
+    //    errorCb = (error) -> callback(error)
+    //    successCb = (img) -> callback(null, img)
+    //    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [PublisherStreamId]);
     callback(new Error('disabled due to custom renderer bug (client#823'));
     return this;
-  };
+  }
 
-  TBPublisher.prototype.getStyle = function() {
+  getStyle() {
     return {};
-  };
+  }
 
-  TBPublisher.prototype.publishAudio = function(state) {
+  publishAudio(state) {
     this.publishMedia("publishAudio", state);
     return this;
-  };
+  }
 
-  TBPublisher.prototype.publishVideo = function(state) {
+  publishVideo(state) {
     this.publishMedia("publishVideo", state);
     return this;
-  };
+  }
 
-  TBPublisher.prototype.setCameraPosition = function(cameraPosition) {
+  setCameraPosition(cameraPosition) {
     pdebug("setting camera position", {
       cameraPosition: cameraPosition
     });
     Cordova.exec(TBSuccess, TBError, OTPlugin, "setCameraPosition", [cameraPosition]);
     return this;
-  };
+  }
 
-  TBPublisher.prototype.setStyle = function(style, value) {
+  setStyle(style, value) {
     return this;
-  };
+  }
 
-  TBPublisher.prototype.audioLevelUpdated = function(event) {
+  audioLevelUpdated(event) {
     var streamEvent;
     streamEvent = new TBEvent("audioLevelUpdated");
     streamEvent.audioLevel = event.audioLevel;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBPublisher.prototype.publishMedia = function(media, state) {
+  publishMedia(media, state) {
     var publishState;
     if (media !== "publishAudio" && media !== "publishVideo") {
       return;
@@ -618,11 +689,12 @@ TBPublisher = (function() {
       publishState: publishState
     });
     return Cordova.exec(TBSuccess, TBError, OTPlugin, media, [publishState]);
-  };
+  }
 
-  TBPublisher.prototype.sanitizeInputs = function(one, two) {
+  sanitizeInputs(one, two) {
     var position;
     if ((two != null)) {
+      // all 2 optional properties present: domId, properties
       if (one instanceof Element) {
         this.pubElement = one;
         this.domId = this.pubElement.id;
@@ -632,6 +704,7 @@ TBPublisher = (function() {
       }
       this.properties = two;
     } else if ((one != null)) {
+      // only 1 property is present domId || properties
       if (one instanceof Element) {
         this.pubElement = one;
         this.domId = this.pubElement.id;
@@ -642,16 +715,17 @@ TBPublisher = (function() {
         this.pubElement = document.getElementById(one);
       }
     }
-    this.properties = this.properties && typeof (this.properties === "object") ? this.properties : {};
+    this.properties = (this.properties && typeof (this.properties === "object")) ? this.properties : {};
     if (!this.domId && this.pubElement) {
       this.domId = "PubSub" + Date.now();
       this.pubElement.setAttribute('id', this.domId);
     }
+    // if domId exists but properties width or height is not specified, set properties
     if (this.domId && this.pubElement) {
       if (!this.properties.width || !this.properties.height) {
         console.log("domId exists but properties width or height is not specified");
         position = getPosition(this.pubElement);
-        console.log(" width: " + position.width + " and height: " + position.height + " for domId " + this.domId + ", and top: " + position.top + ", left: " + position.left);
+        console.log(` width: ${position.width} and height: ${position.height} for domId ${this.domId}, and top: ${position.top}, left: ${position.left}`);
         if (position.width > 0 && position.height > 0) {
           this.properties.width = position.width;
           this.properties.height = position.height;
@@ -662,17 +736,33 @@ TBPublisher = (function() {
       this.pubElement = document.getElementById(this.domId);
     }
     return this;
-  };
+  }
 
-  return TBPublisher;
+};
 
-})();
+// Session Object:
+//   Properties:
+//     capabilities ( Capabilities ) - A Capabilities object includes info about capabilities of the client. All properties of capabilities object are undefined until connected to a session
+//     connection ( Connection ) - connection property is only available once session object dispatches sessionConnected event
+//     sessionId ( String ) - session Id for this session
+//   Methods: 
+//     connect( token, completionHandler )
+//     disconnect()
+//     forceDisconnect( connection ) - forces a remote connection to leave the session
+//     forceUnpublish( stream ) - forces publisher of the spicified stream to stop publishing the stream
+//     getPublisherForStream( stream ) - returns the local publisher object for a given stream
+//     getSubscribersForStream( stream ) - returns array of local subscriber objects for a given stream
+//     off( type, listener ) 
+//     on( type, listener ) 
+//     publish( publisher ) - starts publishing
+//     signal( signal, completionHandler)
+//     subscribe( stream, targetElement, properties ) : subscriber
+//     unpublish( publisher )
+//     unsubscribe( subscriber )
+var TBSession;
 
-var TBSession,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-
-TBSession = (function() {
-  TBSession.prototype.connect = function(token, connectCompletionCallback) {
+TBSession = class TBSession {
+  connect(token, connectCompletionCallback) {
     var errorCallback;
     this.token = token;
     if (typeof connectCompletionCallback !== "function" && (connectCompletionCallback != null)) {
@@ -687,29 +777,29 @@ TBSession = (function() {
     }
     Cordova.exec(this.eventReceived, TBError, OTPlugin, "addEvent", ["sessionEvents"]);
     Cordova.exec(TBSuccess, errorCallback, OTPlugin, "connect", [this.token]);
-  };
+  }
 
-  TBSession.prototype.disconnect = function() {
+  disconnect() {
     return Cordova.exec(TBSuccess, TBError, OTPlugin, "disconnect", []);
-  };
+  }
 
-  TBSession.prototype.forceDisconnect = function(connection) {
+  forceDisconnect(connection) {
     return this;
-  };
+  }
 
-  TBSession.prototype.forceUnpublish = function(stream) {
+  forceUnpublish(stream) {
     return this;
-  };
+  }
 
-  TBSession.prototype.getPublisherForStream = function(stream) {
+  getPublisherForStream(stream) {
     return this;
-  };
+  }
 
-  TBSession.prototype.getSubscribersForStream = function(stream) {
+  getSubscribersForStream(stream) {
     return this;
-  };
+  }
 
-  TBSession.prototype.publish = function(divObject, properties) {
+  publish(divObject, properties) {
     if (this.alreadyPublishing) {
       pdebug("Session is already publishing", {});
       return;
@@ -717,9 +807,9 @@ TBSession = (function() {
     this.alreadyPublishing = true;
     this.publisher = new TBPublisher(divObject, properties);
     return this.publish(this.publisher);
-  };
+  }
 
-  TBSession.prototype.publish = function() {
+  publish() {
     if (this.alreadyPublishing) {
       pdebug("Session is already publishing", {});
       return;
@@ -733,28 +823,31 @@ TBSession = (function() {
     this.publisher.setSession(this);
     Cordova.exec(TBSuccess, OTPublisherError, OTPlugin, "publish", []);
     return this.publisher;
-  };
+  }
 
-  TBSession.prototype.signal = function(signal, signalCompletionHandler) {
+  signal(signal, signalCompletionHandler) {
     var data, to, type;
+    // signal payload: [type, data, connection( separated by spaces )]
     type = signal.type != null ? signal.type : "";
     data = signal.data != null ? signal.data : "";
     to = signal.to != null ? signal.to : "";
     to = typeof to === "string" ? to : to.connectionId;
     Cordova.exec(TBSuccess, TBError, OTPlugin, "signal", [type, data, to]);
     return this;
-  };
+  }
 
-  TBSession.prototype.subscribe = function(one, two, three, four) {
+  subscribe(one, two, three, four) {
     var domId, subscriber;
     this.subscriberCallbacks = {};
     if ((four != null)) {
+      // stream,domId, properties, completionHandler
       subscriber = new TBSubscriber(one, two, three);
       this.subscriberCallbacks[one.streamId] = four;
       this.subscribers[one.streamId] = subscriber;
       return subscriber;
     }
     if ((three != null)) {
+      // stream, domId, properties || stream, domId, completionHandler || stream, properties, completionHandler
       if ((typeof two === "string" || two.nodeType === 1 || two instanceof Element) && typeof three === "object") {
         console.log("stream, domId, props");
         subscriber = new TBSubscriber(one, two, three);
@@ -778,6 +871,7 @@ TBSession = (function() {
       }
     }
     if ((two != null)) {
+      // stream, domId || stream, properties || stream,completionHandler
       if (typeof two === "string" || two.nodeType === 1 || two instanceof Element) {
         subscriber = new TBSubscriber(one, two, {});
         this.subscribers[one.streamId] = subscriber;
@@ -797,13 +891,14 @@ TBSession = (function() {
         return subscriber;
       }
     }
+    // stream
     domId = TBGenerateDomHelper();
     subscriber = new TBSubscriber(one, domId, {});
     this.subscribers[one.streamId] = subscriber;
     return subscriber;
-  };
+  }
 
-  TBSession.prototype.unpublish = function() {
+  unpublish() {
     var element;
     this.alreadyPublishing = false;
     console.log("JS: Unpublish");
@@ -812,13 +907,13 @@ TBSession = (function() {
       this.resetElement(element);
     }
     return Cordova.exec(TBSuccess, TBError, OTPlugin, "unpublish", []);
-  };
+  }
 
-  TBSession.prototype.unsubscribe = function(subscriber) {
+  unsubscribe(subscriber) {
     var element, elementId;
     console.log("JS: Unsubscribe");
     elementId = subscriber.streamId;
-    element = document.getElementById("TBStreamConnection" + elementId);
+    element = document.getElementById(`TBStreamConnection${elementId}`);
     console.log("JS: Unsubscribing");
     element = streamElements[elementId];
     if (element) {
@@ -826,25 +921,28 @@ TBSession = (function() {
       delete streamElements[elementId];
     }
     return Cordova.exec(TBSuccess, TBError, OTPlugin, "unsubscribe", [subscriber.streamId]);
-  };
+  }
 
-  function TBSession(apiKey, sessionId) {
+  constructor(apiKey, sessionId) {
+    this.publish = this.publish.bind(this);
+    this.publish = this.publish.bind(this);
+    this.resetElement = this.resetElement.bind(this);
+    
+    // event listeners
+    // todo - other events: connectionCreated, connectionDestroyed, signal?, streamPropertyChanged, signal:type?
+    this.eventReceived = this.eventReceived.bind(this);
+    this.connectionCreated = this.connectionCreated.bind(this);
+    this.connectionDestroyed = this.connectionDestroyed.bind(this);
+    this.sessionConnected = this.sessionConnected.bind(this);
+    this.sessionDisconnected = this.sessionDisconnected.bind(this);
+    this.sessionReconnected = this.sessionReconnected.bind(this);
+    this.sessionReconnecting = this.sessionReconnecting.bind(this);
+    this.streamCreated = this.streamCreated.bind(this);
+    this.streamDestroyed = this.streamDestroyed.bind(this);
+    this.subscribedToStream = this.subscribedToStream.bind(this);
+    this.signalReceived = this.signalReceived.bind(this);
     this.apiKey = apiKey;
     this.sessionId = sessionId;
-    this.signalReceived = __bind(this.signalReceived, this);
-    this.subscribedToStream = __bind(this.subscribedToStream, this);
-    this.streamDestroyed = __bind(this.streamDestroyed, this);
-    this.streamCreated = __bind(this.streamCreated, this);
-    this.sessionReconnecting = __bind(this.sessionReconnecting, this);
-    this.sessionReconnected = __bind(this.sessionReconnected, this);
-    this.sessionDisconnected = __bind(this.sessionDisconnected, this);
-    this.sessionConnected = __bind(this.sessionConnected, this);
-    this.connectionDestroyed = __bind(this.connectionDestroyed, this);
-    this.connectionCreated = __bind(this.connectionCreated, this);
-    this.eventReceived = __bind(this.eventReceived, this);
-    this.resetElement = __bind(this.resetElement, this);
-    this.publish = __bind(this.publish, this);
-    this.publish = __bind(this.publish, this);
     this.apiKey = this.apiKey.toString();
     this.connections = {};
     this.streams = {};
@@ -854,32 +952,32 @@ TBSession = (function() {
     Cordova.exec(TBSuccess, TBSuccess, OTPlugin, "initSession", [this.apiKey, this.sessionId]);
   }
 
-  TBSession.prototype.cleanUpDom = function() {
-    var e, objects, _results;
+  cleanUpDom() {
+    var e, objects, results;
     objects = document.getElementsByClassName('OT_root');
-    _results = [];
+    results = [];
     while (objects.length > 0) {
       e = objects[0];
       if (e) {
         this.resetElement(e);
       }
-      _results.push(objects = document.getElementsByClassName('OT_root'));
+      results.push(objects = document.getElementsByClassName('OT_root'));
     }
-    return _results;
-  };
+    return results;
+  }
 
-  TBSession.prototype.resetElement = function(element) {
-    var attribute, attributes, childClass, childElement, elementChildren, insertMode, _i, _j, _len, _len1;
+  resetElement(element) {
+    var attribute, attributes, childClass, childElement, elementChildren, i, insertMode, j, len, len1;
     insertMode = element.getAttribute('data-insertMode');
     if (insertMode === "replace") {
       attributes = ['style', 'data-streamid', 'class', 'data-insertMode'];
       elementChildren = element.childNodes;
-      for (_i = 0, _len = attributes.length; _i < _len; _i++) {
-        attribute = attributes[_i];
+      for (i = 0, len = attributes.length; i < len; i++) {
+        attribute = attributes[i];
         element.removeAttribute(attribute);
       }
-      for (_j = 0, _len1 = elementChildren.length; _j < _len1; _j++) {
-        childElement = elementChildren[_j];
+      for (j = 0, len1 = elementChildren.length; j < len1; j++) {
+        childElement = elementChildren[j];
         childClass = childElement.getAttribute('class');
         if (childClass === 'OT_video-container') {
           element.removeChild(childElement);
@@ -889,17 +987,17 @@ TBSession = (function() {
     } else {
       element.parentNode.removeChild(element);
     }
-  };
+  }
 
-  TBSession.prototype.eventReceived = function(response) {
+  eventReceived(response) {
     if (typeof this[response.eventType] === "function") {
       return this[response.eventType](response.data);
     } else {
       return pdebug("No method found for EventType: '" + response.eventType + "'");
     }
-  };
+  }
 
-  TBSession.prototype.connectionCreated = function(event) {
+  connectionCreated(event) {
     var connection, connectionEvent;
     connection = new TBConnection(event.connection);
     connectionEvent = new TBEvent("connectionCreated");
@@ -907,9 +1005,9 @@ TBSession = (function() {
     this.connections[connection.connectionId] = connection;
     this.dispatchEvent(connectionEvent);
     return this;
-  };
+  }
 
-  TBSession.prototype.connectionDestroyed = function(event) {
+  connectionDestroyed(event) {
     var connection, connectionEvent;
     connection = this.connections[event.connection.connectionId];
     connectionEvent = new TBEvent("connectionDestroyed");
@@ -918,17 +1016,24 @@ TBSession = (function() {
     this.dispatchEvent(connectionEvent);
     delete this.connections[connection.connectionId];
     return this;
-  };
+  }
 
-  TBSession.prototype.sessionConnected = function(event) {
+  sessionConnected(event) {
     pdebug("sessionConnectedHandler", event);
     OTDomObserver.observe(document, {
+      // Set to true if additions and removals of the target node's child elements (including text nodes) are to be observed.
       childList: true,
+      // Set to true if mutations to target's attributes are to be observed.
       attributes: true,
+      // Set to true if mutations to target's data are to be observed.
       characterData: false,
+      // Set to true if mutations to not just target, but also target's descendants are to be observed.
       subtree: true,
+      // Set to true if attributes is set to true and target's attribute value before the mutation needs to be recorded.
       attributeOldValue: false,
+      // Set to true if characterData is set to true and target's data before the mutation needs to be recorded.
       characterDataOldValue: false,
+      // Set to an array of attribute local names (without namespace) if not all attribute mutations need to be observed.
       attributeFilter: ['style', 'class']
     });
     this.dispatchEvent(new TBEvent("sessionConnected"));
@@ -936,9 +1041,9 @@ TBSession = (function() {
     this.connections[event.connection.connectionId] = this.connection;
     event = null;
     return this;
-  };
+  }
 
-  TBSession.prototype.sessionDisconnected = function(event) {
+  sessionDisconnected(event) {
     var sessionDisconnectedEvent;
     OTDomObserver.disconnect();
     this.alreadyPublishing = false;
@@ -947,40 +1052,42 @@ TBSession = (function() {
     this.dispatchEvent(sessionDisconnectedEvent);
     this.cleanUpDom();
     return this;
-  };
+  }
 
-  TBSession.prototype.sessionReconnected = function(event) {
+  sessionReconnected(event) {
     var sessionEvent;
     sessionEvent = new TBEvent("sessionReconnected");
     this.dispatchEvent(sessionEvent);
     return this;
-  };
+  }
 
-  TBSession.prototype.sessionReconnecting = function(event) {
+  sessionReconnecting(event) {
     var sessionEvent;
     sessionEvent = new TBEvent("sessionReconnecting");
     this.dispatchEvent(sessionEvent);
     return this;
-  };
+  }
 
-  TBSession.prototype.streamCreated = function(event) {
+  streamCreated(event) {
     var stream, streamEvent;
     stream = new TBStream(event.stream, this.connections[event.stream.connectionId]);
     this.streams[stream.streamId] = stream;
     OT.timeStreamCreated[stream.streamId] = performance.now();
     streamEvent = new TBEvent("streamCreated");
     streamEvent.stream = stream;
+    //streamEvent = new TBEvent( {stream: stream } )
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSession.prototype.streamDestroyed = function(event) {
+  streamDestroyed(event) {
     var element, stream, streamEvent;
     stream = this.streams[event.stream.streamId];
     streamEvent = new TBEvent("streamDestroyed");
     streamEvent.stream = stream;
     streamEvent.reason = "clientDisconnected";
     this.dispatchEvent(streamEvent);
+    // remove stream DOM
     if (stream) {
       element = streamElements[stream.streamId];
       if (element) {
@@ -990,9 +1097,9 @@ TBSession = (function() {
       delete this.streams[stream.streamId];
     }
     return this;
-  };
+  }
 
-  TBSession.prototype.streamPropertyChanged = function(event) {
+  streamPropertyChanged(event) {
     var stream, streamEvent;
     stream = new TBStream(event.stream, this.connections[event.stream.connectionId]);
     if (this.publisher && this.publisher.stream && this.publisher.stream.streamId === stream.streamId) {
@@ -1008,9 +1115,9 @@ TBSession = (function() {
     streamEvent.newValue = event.newValue;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSession.prototype.subscribedToStream = function(event) {
+  subscribedToStream(event) {
     var callbackFunc, error, streamId;
     streamId = event.streamId;
     callbackFunc = this.subscriberCallbacks[streamId];
@@ -1023,56 +1130,63 @@ TBSession = (function() {
     } else {
       callbackFunc();
     }
-  };
+  }
 
-  TBSession.prototype.signalReceived = function(event) {
+  signalReceived(event) {
     var streamEvent;
     streamEvent = new TBEvent("signal");
     streamEvent.data = event.data;
     streamEvent.from = this.connections[event.connectionId];
     this.dispatchEvent(streamEvent);
-    streamEvent = new TBEvent("signal:" + event.type);
+    streamEvent = new TBEvent(`signal:${event.type}`);
     streamEvent.data = event.data;
     streamEvent.from = this.connections[event.connectionId];
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSession.prototype.archiveStarted = function(event) {
+  archiveStarted(event) {
     var streamEvent;
     streamEvent = new TBEvent("archiveStarted");
     streamEvent.id = event.id;
     streamEvent.name = event.name;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSession.prototype.archiveStopped = function(event) {
+  archiveStopped(event) {
     var streamEvent;
     streamEvent = new TBEvent("archiveStopped");
     streamEvent.id = event.id;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSession.prototype.addEventListener = function(event, handler) {
+  // deprecating
+  addEventListener(event, handler) { // deprecating soon
     this.on(event, handler);
     return this;
-  };
+  }
 
-  TBSession.prototype.removeEventListener = function(event, handler) {
+  removeEventListener(event, handler) {
     this.off(event, handler);
     return this;
-  };
+  }
 
-  return TBSession;
+};
 
-})();
-
+// Stream Object:
+//   Properties:
+//     connection ( Connection ) - connection that corresponds to the connection publishing the stream
+//     creationTime ( Number ) - timestamp for the creation of the stream, calculated in milliseconds
+//     hasAudio ( Boolean ) 
+//     hasVideo( Boolean )
+//     videoDimensions( Object ) - width and height, numbers
+//     name( String ) - name of the stream
 var TBStream;
 
-TBStream = (function() {
-  function TBStream(prop, connection) {
+TBStream = class TBStream {
+  constructor(prop, connection) {
     var k, v;
     this.connection = connection;
     for (k in prop) {
@@ -1085,44 +1199,58 @@ TBStream = (function() {
     };
   }
 
-  return TBStream;
+};
 
-})();
+// Subscriber Object:
+//   Properties:
+//     id (string) - dom id of the subscriber
+//     stream (Stream) - stream to which you are subscribing
+//   Methods: 
+//     getAudioVolume()
+//     getImgData(callback)
+//     getStyle() : Objects
+//     off( type, listener ) : objects
+//     on( type, listener ) : objects
+//     setAudioVolume( value ) : subscriber
+//     setStyle( style, value ) : subscriber
+//     subscribeToAudio( value ) : subscriber
+//     subscribeToVideo( value ) : subscriber
+var TBSubscriber;
 
-var TBSubscriber,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-
-TBSubscriber = (function() {
-  TBSubscriber.prototype.getAudioVolume = function() {
+TBSubscriber = class TBSubscriber {
+  getAudioVolume() {
     return 0;
-  };
+  }
 
-  TBSubscriber.prototype.getImgData = function(callback) {
+  getImgData(callback) {
+    //    errorCb = (error) -> callback(error)
+    //    successCb = (img) -> callback(null, img)
+    //    Cordova.exec(successCb, errorCb, OTPlugin, "getImgData", [this.streamId]);
     callback(new Error('disabled due to custom renderer bug (client#823'));
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.getStyle = function() {
+  getStyle() {
     return {};
-  };
+  }
 
-  TBSubscriber.prototype.setAudioVolume = function(value) {
+  setAudioVolume(value) {
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.setStyle = function(style, value) {
+  setStyle(style, value) {
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.off = function(event, handler) {
+  off(event, handler) {
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.on = function(event, handler) {
+  on(event, handler) {
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.subscribeToAudio = function(value) {
+  subscribeToAudio(value) {
     var state;
     state = "true";
     if ((value != null) && (value === false || value === "false")) {
@@ -1130,9 +1258,9 @@ TBSubscriber = (function() {
     }
     Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribeToAudio", [this.streamId, state]);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.subscribeToVideo = function(value) {
+  subscribeToVideo(value) {
     var state;
     state = "true";
     if ((value != null) && (value === false || value === "false")) {
@@ -1140,19 +1268,19 @@ TBSubscriber = (function() {
     }
     Cordova.exec(TBSuccess, TBError, OTPlugin, "subscribeToVideo", [this.streamId, state]);
     return this;
-  };
+  }
 
-  function TBSubscriber(stream, divObject, properties) {
-    this.audioLevelUpdated = __bind(this.audioLevelUpdated, this);
-    this.videoEnabled = __bind(this.videoEnabled, this);
-    this.videoDisabledWarningLifted = __bind(this.videoDisabledWarningLifted, this);
-    this.videoDisabledWarning = __bind(this.videoDisabledWarning, this);
-    this.videoDisabled = __bind(this.videoDisabled, this);
-    this.videoDataReceived = __bind(this.videoDataReceived, this);
-    this.disconnected = __bind(this.disconnected, this);
-    this.connected = __bind(this.connected, this);
-    this.eventReceived = __bind(this.eventReceived, this);
-    var divPosition, fitMode, height, insertMode, name, obj, position, ratios, subscribeToAudio, subscribeToVideo, width, zIndex, _ref, _ref1, _ref2;
+  constructor(stream, divObject, properties) {
+    var divPosition, fitMode, height, insertMode, name, obj, position, ratios, ref, ref1, ref2, subscribeToAudio, subscribeToVideo, width, zIndex;
+    this.eventReceived = this.eventReceived.bind(this);
+    this.connected = this.connected.bind(this);
+    this.disconnected = this.disconnected.bind(this);
+    this.videoDataReceived = this.videoDataReceived.bind(this);
+    this.videoDisabled = this.videoDisabled.bind(this);
+    this.videoDisabledWarning = this.videoDisabledWarning.bind(this);
+    this.videoDisabledWarningLifted = this.videoDisabledWarningLifted.bind(this);
+    this.videoEnabled = this.videoEnabled.bind(this);
+    this.audioLevelUpdated = this.audioLevelUpdated.bind(this);
     if (divObject instanceof Element) {
       this.element = divObject;
       this.id = this.element.id;
@@ -1170,8 +1298,8 @@ TBSubscriber = (function() {
     if ((properties != null)) {
       width = properties.width || divPosition.width;
       height = properties.height || divPosition.height;
-      fitMode = (_ref = properties.fitMode) != null ? _ref : fitMode;
-      name = (_ref1 = properties.name) != null ? _ref1 : "";
+      fitMode = (ref = properties.fitMode) != null ? ref : fitMode;
+      name = (ref1 = properties.name) != null ? ref1 : "";
       subscribeToVideo = "true";
       subscribeToAudio = "true";
       if ((properties.subscribeToVideo != null) && properties.subscribeToVideo === false) {
@@ -1180,7 +1308,7 @@ TBSubscriber = (function() {
       if ((properties.subscribeToAudio != null) && properties.subscribeToAudio === false) {
         subscribeToAudio = "false";
       }
-      insertMode = (_ref2 = properties.insertMode) != null ? _ref2 : insertMode;
+      insertMode = (ref2 = properties.insertMode) != null ? ref2 : insertMode;
     }
     if ((width == null) || width === 0 || (height == null) || height === 0) {
       width = DefaultWidth;
@@ -1203,82 +1331,81 @@ TBSubscriber = (function() {
     OT.updateViews();
   }
 
-  TBSubscriber.prototype.eventReceived = function(response) {
+  eventReceived(response) {
     if (typeof this[response.eventType] === "function") {
       return this[response.eventType](response.data);
     } else {
       return pdebug("No method found for EventType: '" + response.eventType + "'");
     }
-  };
+  }
 
-  TBSubscriber.prototype.connected = function(event) {
+  connected(event) {
     var streamEvent;
     streamEvent = new TBEvent("connected");
     streamEvent.stream = event.streamId;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.disconnected = function(event) {
+  disconnected(event) {
     var streamEvent;
     streamEvent = new TBEvent("disconnected");
     streamEvent.stream = event.streamId;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.videoDataReceived = function(event) {
+  videoDataReceived(event) {
     var streamEvent;
     streamEvent = new TBEvent("videoDataReceived");
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.videoDisabled = function(event) {
+  videoDisabled(event) {
     var streamEvent;
     streamEvent = new TBEvent("videoDisabled");
     streamEvent.reason = event.reason;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.videoDisabledWarning = function(event) {
+  videoDisabledWarning(event) {
     var streamEvent;
     streamEvent = new TBEvent("videoDisabledWarning");
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.videoDisabledWarningLifted = function(event) {
+  videoDisabledWarningLifted(event) {
     var streamEvent;
     streamEvent = new TBEvent("videoDisabledWarningLifted");
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.videoEnabled = function(event) {
+  videoEnabled(event) {
     var streamEvent;
     streamEvent = new TBEvent("videoEnabled");
     streamEvent.reason = event.reason;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.audioLevelUpdated = function(event) {
+  audioLevelUpdated(event) {
     var streamEvent;
     streamEvent = new TBEvent("audioLevelUpdated");
     streamEvent.audioLevel = event.audioLevel;
     this.dispatchEvent(streamEvent);
     return this;
-  };
+  }
 
-  TBSubscriber.prototype.removeEventListener = function(event, listener) {
+  // deprecating
+  removeEventListener(event, listener) {
     return this;
-  };
+  }
 
-  return TBSubscriber;
-
-})();
+};
 ;/**
  * @license  Common JS Helpers on OpenTok 0.2.0 1f056b9 master
  * http://www.tokbox.com/

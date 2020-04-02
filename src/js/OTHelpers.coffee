@@ -80,19 +80,24 @@ TBUpdateObjects = ()->
       console.log("JS: Object updated with sessionId " + streamId + " updated");
       e.TBPosition = position;
       e.TBZIndex = zIndex;
-      Cordova.exec(TBSuccess, TBError, OTPlugin, "updateView", [streamId, position.top, position.left, position.width, position.height, zIndex, ratios.widthRatio, ratios.heightRatio]);
+      delete OT.currentlyUpdating[streamId];
+      Cordova.exec(TBSuccess, TBError, OTPlugin, "updateView", [streamId, position.top, position.left, position.width || 1, position.height || 1, zIndex, ratios.widthRatio, ratios.heightRatio]);
     , time)
     return
 
   objects = document.getElementsByClassName('OT_root')
   for e in objects
     streamId = e.dataset.streamid
-    time = 0
-    if typeof window.angular != "undefined" || typeof window.Ionic != "undefined"
-      if OT.timeStreamCreated[streamId]
-        time = performance.now() - OT.timeStreamCreated[streamId]
-        delete OT.timeStreamCreated[streamId]
-    updateObject(e, time)
+    if(!OT.currentlyUpdating[streamId])
+      OT.currentlyUpdating[streamId] = true
+      time = 0
+      if typeof window.angular != "undefined" || typeof window.Ionic != "undefined"
+        if OT.timeStreamCreated[streamId]
+          time = performance.now() - OT.timeStreamCreated[streamId]
+          delete OT.timeStreamCreated[streamId]
+      updateObject(e, time)
+    else
+      console.log("JS: Object with sessionId " + streamId + " already being updated");
   return
 
 TBGenerateDomHelper = ->
