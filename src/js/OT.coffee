@@ -12,7 +12,6 @@
 
 window.OT =
   timeStreamCreated: {}
-  currentlyUpdating: {}
   checkSystemRequirements: ->
     return 1
   initPublisher: (one, two) ->
