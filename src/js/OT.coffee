@@ -12,7 +12,6 @@
 
 window.OT =
   timeStreamCreated: {}
-  currentlyUpdating: {}
   checkSystemRequirements: ->
     return 1
   initPublisher: (one, two) ->
@@ -32,9 +31,12 @@ window.OT =
     console.log("Log Level Set")
   upgradeSystemRequirements: ->
     return {}
-  updateViews: ->
-    TBUpdateObjects()
-
+  updateViews: (containers) ->
+    if containers
+      for container in containers
+        TBUpdateObjects(container)
+    else
+      TBUpdateObjects()
   # helpers
   getHelper: ->
     if(typeof(jasmine)=="undefined" || !jasmine || !jasmine['getEnv'])
