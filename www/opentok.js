@@ -30,7 +30,6 @@ DefaultHeight = 198;
 //     TB.upgradeSystemRequirements()
 window.OT = {
   timeStreamCreated: {},
-  currentlyUpdating: {},
   checkSystemRequirements: function() {
     return 1;
   },
@@ -60,8 +59,18 @@ window.OT = {
   upgradeSystemRequirements: function() {
     return {};
   },
-  updateViews: function() {
-    return TBUpdateObjects();
+  updateViews: function(containers) {
+    var container, i, len, results;
+    if (containers) {
+      results = [];
+      for (i = 0, len = containers.length; i < len; i++) {
+        container = containers[i];
+        results.push(TBUpdateObjects(container));
+      }
+      return results;
+    } else {
+      return TBUpdateObjects();
+    }
   },
   // helpers
   getHelper: function() {
@@ -290,8 +299,8 @@ OTPublisherError = function(error) {
   }
 };
 
-TBUpdateObjects = function() {
-  var e, i, len, objects, streamId, time, updateObject;
+TBUpdateObjects = function(container) {
+  var e, i, len, objects, scheduleUpdate, updateObject;
   console.log("JS: Objects being updated in TBUpdateObjects");
   updateObject = function(e, time) {
     setTimeout(function() {
@@ -303,26 +312,28 @@ TBUpdateObjects = function() {
       console.log("JS: Object updated with sessionId " + streamId + " updated");
       e.TBPosition = position;
       e.TBZIndex = zIndex;
-      delete OT.currentlyUpdating[streamId];
       return Cordova.exec(TBSuccess, TBError, OTPlugin, "updateView", [streamId, position.top, position.left, position.width || 1, position.height || 1, zIndex, ratios.widthRatio, ratios.heightRatio]);
     }, time);
   };
-  objects = document.getElementsByClassName('OT_root');
-  for (i = 0, len = objects.length; i < len; i++) {
-    e = objects[i];
+  scheduleUpdate = function(e) {
+    var streamId, time;
     streamId = e.dataset.streamid;
-    if (!OT.currentlyUpdating[streamId]) {
-      OT.currentlyUpdating[streamId] = true;
-      time = 0;
-      if (typeof window.angular !== "undefined" || typeof window.Ionic !== "undefined") {
-        if (OT.timeStreamCreated[streamId]) {
-          time = performance.now() - OT.timeStreamCreated[streamId];
-          delete OT.timeStreamCreated[streamId];
-        }
+    time = 0;
+    if (typeof window.angular !== "undefined" || typeof window.Ionic !== "undefined") {
+      if (OT.timeStreamCreated[streamId]) {
+        time = performance.now() - OT.timeStreamCreated[streamId];
+        delete OT.timeStreamCreated[streamId];
       }
-      updateObject(e, time);
-    } else {
-      console.log("JS: Object with sessionId " + streamId + " already being updated");
+    }
+    return updateObject(e, time);
+  };
+  if (container) {
+    scheduleUpdate(container);
+  } else {
+    objects = document.getElementsByClassName('OT_root');
+    for (i = 0, len = objects.length; i < len; i++) {
+      e = objects[i];
+      scheduleUpdate(e);
     }
   }
 };
@@ -458,7 +469,7 @@ OTDomObserver = new MutationObserver(function(mutations) {
     if (mutation.type === 'attributes') {
       videoContainer = getVideoContainer(mutation.target);
       if (videoContainer) {
-        TBUpdateObjects();
+        TBUpdateObjects(videoContainer);
       }
       continue;
     }

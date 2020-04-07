@@ -69,7 +69,7 @@ OTPublisherError = (error) ->
   else
     TBError(error)
 
-TBUpdateObjects = ()->
+TBUpdateObjects = (container)->
   console.log("JS: Objects being updated in TBUpdateObjects")
   updateObject = (e, time) ->
     setTimeout(() ->
@@ -80,24 +80,25 @@ TBUpdateObjects = ()->
       console.log("JS: Object updated with sessionId " + streamId + " updated");
       e.TBPosition = position;
       e.TBZIndex = zIndex;
-      delete OT.currentlyUpdating[streamId];
       Cordova.exec(TBSuccess, TBError, OTPlugin, "updateView", [streamId, position.top, position.left, position.width || 1, position.height || 1, zIndex, ratios.widthRatio, ratios.heightRatio]);
     , time)
     return
 
-  objects = document.getElementsByClassName('OT_root')
-  for e in objects
+  scheduleUpdate = (e) ->
     streamId = e.dataset.streamid
-    if(!OT.currentlyUpdating[streamId])
-      OT.currentlyUpdating[streamId] = true
-      time = 0
-      if typeof window.angular != "undefined" || typeof window.Ionic != "undefined"
-        if OT.timeStreamCreated[streamId]
-          time = performance.now() - OT.timeStreamCreated[streamId]
-          delete OT.timeStreamCreated[streamId]
-      updateObject(e, time)
-    else
-      console.log("JS: Object with sessionId " + streamId + " already being updated");
+    time = 0
+    if typeof window.angular != "undefined" || typeof window.Ionic != "undefined"
+      if OT.timeStreamCreated[streamId]
+        time = performance.now() - OT.timeStreamCreated[streamId]
+        delete OT.timeStreamCreated[streamId]
+    updateObject(e, time)
+
+  if (container)
+    scheduleUpdate(container)
+  else
+    objects = document.getElementsByClassName('OT_root')
+    for e in objects
+      scheduleUpdate(e)
   return
 
 TBGenerateDomHelper = ->
@@ -196,7 +197,7 @@ OTDomObserver = new MutationObserver((mutations) ->
     if mutation.type == 'attributes'
       videoContainer = getVideoContainer(mutation.target)
       if videoContainer
-        TBUpdateObjects()
+        TBUpdateObjects(videoContainer)
       continue
 
     # Check if there has been addition or deletion of nodes.
