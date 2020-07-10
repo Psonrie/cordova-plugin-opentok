@@ -98,13 +98,14 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             @Override
             public int compare(RunnableUpdateViews object1, RunnableUpdateViews object2) {
                 if(object1 instanceof RunnablePublisher && object2 instanceof RunnableSubscriber){
-                    return 1;
-                }
-
-                if(object1 instanceof RunnableSubscriber && object2 instanceof RunnablePublisher){
                     return -1;
                 }
 
+                if(object1 instanceof RunnableSubscriber && object2 instanceof RunnablePublisher){
+                    return 1;
+                }
+
+                Log.i(TAG, "Comparing objects. Object1: " + object1.toString() + " Object2: " + object2.toString());
                 return object1.getZIndex() - object2.getZIndex();
             }
         }
