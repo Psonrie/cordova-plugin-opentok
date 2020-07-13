@@ -122,12 +122,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 allStreamViews.add(myPublisher);
             }
 
-            // Sort is still needed, because we need to sort from negative to positive for the z translation.
             Collections.sort(allStreamViews, new CustomComparator());
-
-            for (RunnableUpdateViews viewContainer : allStreamViews) {
-                viewContainer.mView.invalidate();
-            }
 
             for (RunnableUpdateViews viewContainer : allStreamViews) {
                 // Set depth location of camera view based on CSS z-index.
@@ -136,23 +131,24 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                     viewContainer.mView.setTranslationZ(viewContainer.getZIndex());
                 }   
 
+                if(viewContainer instanceof RunnablePublisher){
+                    viewContainer.mView.bringToFront();                                   
+                }                
+            }
 
-                if(viewContainer instanceof RunnableSubscriber){
+
+            for (RunnableUpdateViews viewContainer : allStreamViews) {
+                if(viewContainer instanceof RunnablePublisher){                    
+                    Log.i(TAG, "Publisher: " + viewContainer.getZIndex());
+                }                
+                
+                if(viewContainer instanceof RunnableSubscriber){                    
                         Log.i(TAG, "Subscriber: " + viewContainer.getZIndex());
                 }
 
-                if(viewContainer instanceof RunnablePublisher){
-                        Log.i(TAG, "Publisher: " + viewContainer.getZIndex());
-                }
-                
-                // If the zIndex is 0(default) bring the view to the top, last one wins.
-                // See: https://github.com/saghul/cordova-plugin-iosrtc/blob/5b6a180b324c8c9bac533fa481a457b74183c740/src/PluginMediaStreamRenderer.swift#L191
-                //viewContainer.mView.bringToFront();                    
-            }
-/*
-            for (RunnableUpdateViews viewContainer : allStreamViews) {
                 viewContainer.mView.invalidate();
-            }*/
+            }
+
         }
 
         public int getZIndex() {
