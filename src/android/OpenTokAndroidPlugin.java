@@ -110,10 +110,13 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         }
 
         public void updateZIndices() {
+            if(subscriberCollection.isEmpty()) return; 
+            
             allStreamViews = new ArrayList<RunnableUpdateViews>();
             for (Map.Entry<String, RunnableSubscriber> entry : subscriberCollection.entrySet()) {
                 allStreamViews.add(entry.getValue());
             }
+
             if (myPublisher != null) {
                 allStreamViews.add(myPublisher);
             }
