@@ -125,7 +125,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 // Set depth location of camera view based on CSS z-index.
                 // See: https://developer.android.com/reference/android/view/View.html#setTranslationZ(float)
                 if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    viewContainer.mView.setTranslationZ(viewContainer.getZIndex());s
+                    viewContainer.mView.setTranslationZ(viewContainer.getZIndex());
                 }   
 
 
