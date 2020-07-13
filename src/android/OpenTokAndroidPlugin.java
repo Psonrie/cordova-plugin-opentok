@@ -110,8 +110,9 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         }
 
         public void updateZIndices() {
-            if(subscriberCollection.isEmpty()) return; 
             
+            if(subscriberCollection.isEmpty()) return; 
+
             allStreamViews = new ArrayList<RunnableUpdateViews>();
             for (Map.Entry<String, RunnableSubscriber> entry : subscriberCollection.entrySet()) {
                 allStreamViews.add(entry.getValue());
@@ -123,6 +124,10 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
             // Sort is still needed, because we need to sort from negative to positive for the z translation.
             Collections.sort(allStreamViews, new CustomComparator());
+
+            for (RunnableUpdateViews viewContainer : allStreamViews) {
+                viewContainer.mView.invalidate();
+            }
 
             for (RunnableUpdateViews viewContainer : allStreamViews) {
                 // Set depth location of camera view based on CSS z-index.
@@ -142,12 +147,12 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 
                 // If the zIndex is 0(default) bring the view to the top, last one wins.
                 // See: https://github.com/saghul/cordova-plugin-iosrtc/blob/5b6a180b324c8c9bac533fa481a457b74183c740/src/PluginMediaStreamRenderer.swift#L191
-                //if(viewContainer.getZIndex() == 0) {
-                    viewContainer.mView.invalidate();
-                    viewContainer.mView.bringToFront();
-                    viewContainer.mView.invalidate();
-                //} 
+                //viewContainer.mView.bringToFront();                    
             }
+/*
+            for (RunnableUpdateViews viewContainer : allStreamViews) {
+                viewContainer.mView.invalidate();
+            }*/
         }
 
         public int getZIndex() {
