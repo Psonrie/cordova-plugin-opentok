@@ -126,8 +126,17 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 // See: https://developer.android.com/reference/android/view/View.html#setTranslationZ(float)
                 if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     viewContainer.mView.setTranslationZ(viewContainer.getZIndex());s
+                }   
+
+
+                if(viewContainer instanceof RunnableSubscriber){
+                        Log.i(TAG, "Subscriber: " + viewContainer.getZIndex());
                 }
-                Log.i(TAG, "Bring to front: " + viewContainer.getZIndex() + " one type: " + viewContainer.mView);
+
+                if(viewContainer instanceof RunnablePublisher){
+                        Log.i(TAG, "Publisher: " + viewContainer.getZIndex());
+                }
+                
                 // If the zIndex is 0(default) bring the view to the top, last one wins.
                 // See: https://github.com/saghul/cordova-plugin-iosrtc/blob/5b6a180b324c8c9bac533fa481a457b74183c740/src/PluginMediaStreamRenderer.swift#L191
                 //if(viewContainer.getZIndex() == 0) {
