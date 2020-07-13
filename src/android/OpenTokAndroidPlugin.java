@@ -98,14 +98,13 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             @Override
             public int compare(RunnableUpdateViews object1, RunnableUpdateViews object2) {
                 if(object1 instanceof RunnablePublisher && object2 instanceof RunnableSubscriber){
-                    return -1;
-                }
-
-                if(object1 instanceof RunnableSubscriber && object2 instanceof RunnablePublisher){
                     return 1;
                 }
 
-                Log.i(TAG, "Comparing objects. Object1: " + object1.toString() + " Object2: " + object2.toString());
+                if(object1 instanceof RunnableSubscriber && object2 instanceof RunnablePublisher){
+                    return -1;
+                }
+
                 return object1.getZIndex() - object2.getZIndex();
             }
         }
@@ -128,11 +127,12 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     viewContainer.mView.setTranslationZ(viewContainer.getZIndex());
                 }
+                Log.i(TAG, "Bring to front: " + viewContainer.getZIndex());
                 // If the zIndex is 0(default) bring the view to the top, last one wins.
                 // See: https://github.com/saghul/cordova-plugin-iosrtc/blob/5b6a180b324c8c9bac533fa481a457b74183c740/src/PluginMediaStreamRenderer.swift#L191
-                if(viewContainer.getZIndex() == 0) {
+                //if(viewContainer.getZIndex() == 0) {
                     viewContainer.mView.bringToFront();
-                }
+                //}
             }
         }
 
