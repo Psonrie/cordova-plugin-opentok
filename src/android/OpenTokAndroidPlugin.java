@@ -97,20 +97,33 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         public class CustomComparator implements Comparator<RunnableUpdateViews> {
             @Override
             public int compare(RunnableUpdateViews object1, RunnableUpdateViews object2) {
+                if(object1 instanceof RunnablePublisher && object2 instanceof RunnableSubscriber){
+                    return 1;
+                }
+
+                if(object1 instanceof RunnableSubscriber && object2 instanceof RunnablePublisher){
+                    return -1;
+                }
+
                 return object1.getZIndex() - object2.getZIndex();
             }
         }
 
+
+
         public void updateZIndices() {
+            
+            if(subscriberCollection.isEmpty()) return; 
+
             allStreamViews = new ArrayList<RunnableUpdateViews>();
             for (Map.Entry<String, RunnableSubscriber> entry : subscriberCollection.entrySet()) {
                 allStreamViews.add(entry.getValue());
             }
+
             if (myPublisher != null) {
                 allStreamViews.add(myPublisher);
             }
 
-            // Sort is still needed, because we need to sort from negative to positive for the z translation.
             Collections.sort(allStreamViews, new CustomComparator());
 
             for (RunnableUpdateViews viewContainer : allStreamViews) {
@@ -118,13 +131,17 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 // See: https://developer.android.com/reference/android/view/View.html#setTranslationZ(float)
                 if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     viewContainer.mView.setTranslationZ(viewContainer.getZIndex());
-                }
-                // If the zIndex is 0(default) bring the view to the top, last one wins.
-                // See: https://github.com/saghul/cordova-plugin-iosrtc/blob/5b6a180b324c8c9bac533fa481a457b74183c740/src/PluginMediaStreamRenderer.swift#L191
-                if(viewContainer.getZIndex() == 0) {
-                    viewContainer.mView.bringToFront();
-                }
+                }   
+
+                if(viewContainer instanceof RunnablePublisher){
+                    viewContainer.mView.bringToFront();                                   
+                }                
             }
+
+            for (RunnableUpdateViews viewContainer : allStreamViews) {
+                viewContainer.mView.invalidate();
+            }
+
         }
 
         public int getZIndex() {
@@ -647,10 +664,19 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 return true;
             }
         } else if (action.equals("initSession")) {
+            Log.i(TAG, "Creating new session with data: " + args.toString());
             apiKey = args.getString(0);
             sessionId = args.getString(1);
-            Log.i(TAG, "created new session with data: " + args.toString());
-            mSession = new Session(this.cordova.getActivity().getApplicationContext(), apiKey, sessionId);
+            boolean whitelist = args.getBoolean(2); // boolean cant be null, will be false by default.
+            String proxyUrl = ((!args.isNull(3))) ? args.getString(3) : null;
+
+            Session.Builder sessionBuilder = new Session.Builder(this.cordova.getActivity().getApplicationContext(), apiKey, sessionId);
+            sessionBuilder.setIpWhitelist(whitelist);
+            if (proxyUrl != null) {
+                sessionBuilder.setProxyUrl(proxyUrl);
+            }
+
+            mSession = sessionBuilder.build();
             mSession.setSessionListener(this);
             mSession.setConnectionListener(this);
             mSession.setReconnectionListener(this);

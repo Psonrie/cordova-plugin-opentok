@@ -9,6 +9,8 @@
     <license>Apache 2.0</license>
     <keywords>opentok,tokbox</keywords>
 
+    <dependency id="cordova-plugin-wkwebview-engine" version="1.2.1"/>
+
     <platform name="android">
       <framework src="build-extras.gradle" custom="true" type="gradleReference" />
       <framework src="com.android.support:appcompat-v7:23.1.0" />
@@ -93,6 +95,6 @@
 
     <platform name="browser">
       <hook type="before_plugin_install" src="scripts/downloadJSSDK.js" />
-      <asset src="node_modules/@opentok/client/dist/js/opentok.js" target="opentok.js"/>
+      <asset src="opentok-web.js" target="opentok.js"/>
     </platform>
 </plugin>
