@@ -111,9 +111,8 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
 
 
-        public void updateZIndices() {
-             Log.i(TAG, "Updating views");
-
+        public void updateZIndices() {             
+            
             if(subscriberCollection.isEmpty()) return; 
 
             allStreamViews = new ArrayList<RunnableUpdateViews>();
@@ -125,7 +124,6 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 allStreamViews.add(myPublisher);
             }
 
-            Log.i(TAG, "All streams " + allStreamViews.size());
             Collections.sort(allStreamViews, new CustomComparator());
 
             for (RunnableUpdateViews viewContainer : allStreamViews) {
@@ -136,17 +134,12 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
                 }   
 
                 if(viewContainer instanceof RunnablePublisher){
-                    viewContainer.mView.bringToFront();           
-                    Log.i(TAG, "Publisher goes to the top");                        
-                }else{
-                    Log.i(TAG, "Subscriber");                        
-                }                
+                    viewContainer.mView.bringToFront();                            
+                }
             }
 
-            for (RunnableUpdateViews viewContainer : allStreamViews) {
-                Log.i(TAG, "Invalidating");      
-                                  
-                viewContainer.mView.invalidate();
+            for (RunnableUpdateViews viewContainer : allStreamViews) {                
+                viewContainer.mView.requestLayout();
             }
 
         }
