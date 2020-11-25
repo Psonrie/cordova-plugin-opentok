@@ -144,7 +144,8 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             }
 
             for (RunnableUpdateViews viewContainer : allStreamViews) {
-                Log.i(TAG, "Invalidating");                        
+                Log.i(TAG, "Invalidating");      
+                                  
                 viewContainer.mView.invalidate();
             }
 
