@@ -111,6 +111,36 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
 
 
+ public void updateZIndices(){
+     logMessage("UPDATE ZINDEX");
+
+      allStreamViews =  new ArrayList<RunnableUpdateViews>();
+      for (Map.Entry<String, RunnableSubscriber> entry : subscriberCollection.entrySet() ) { 
+        allStreamViews.add( entry.getValue() ); 
+      }
+      logMessage("SUBSCRIBERS: " + allStreamViews.size());  
+    
+
+      ViewGroup parent = (ViewGroup) cordova.getActivity().findViewById(android.R.id.content);
+      
+      logMessage("Parent: " + parent);
+      for( RunnableUpdateViews viewContainer : allStreamViews ){        
+        if (null != parent) {
+          parent.removeView( viewContainer.mView );
+          parent.addView(viewContainer.mView );
+          logMessage("ADD SUBSCRIBER");  
+        }
+      }
+
+      logMessage("check publisher");  
+      if( myPublisher != null ){        
+          parent.removeView( myPublisher.mView );
+         parent.addView(myPublisher.mView );
+         logMessage("add publisher");  
+      }      
+    }
+
+/*
         public void updateZIndices() {             
             
             if(subscriberCollection.isEmpty()) return; 
@@ -143,7 +173,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             }
 
         }
-
+*/
         public int getZIndex() {
             try {
                 return mProperty.getInt(5);
@@ -179,8 +209,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
         public void run() {
             try {
                 Log.i(TAG, "updating view in ui runnable" + mProperty.toString());
-                Log.i(TAG, "updating view in ui runnable " + mView.toString());
-                Log.i(TAG, "PART 1");
+                Log.i(TAG, "updating view in ui runnable " + mView.toString());                
 
                 // Ratios are index 6 & 7 on TB.updateViews, 8 & 9 on subscribe event, and 9 & 10 on TB.initPublisher
                 int ratioIndex;
