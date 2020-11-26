@@ -111,8 +111,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
 
 
- public void updateZIndices(){
-     logMessage("UPDATE ZINDEX");
+ public void updateZIndices(){     
 
       allStreamViews =  new ArrayList<RunnableUpdateViews>();
       for (Map.Entry<String, RunnableSubscriber> entry : subscriberCollection.entrySet() ) { 
@@ -123,18 +122,22 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
 
       ViewGroup parent = (ViewGroup) cordova.getActivity().findViewById(android.R.id.content);
       
-      logMessage("Parent: " + parent);
+      
+
+      if (null != parent) {
+          parent.removeAllViews();
+          logMessage("Removed views");      
+      }
+
       for( RunnableUpdateViews viewContainer : allStreamViews ){        
-        if (null != parent) {
-          parent.removeView( viewContainer.mView );
+        if (null != parent) {          
           parent.addView(viewContainer.mView );
           logMessage("ADD SUBSCRIBER");  
         }
       }
 
       logMessage("check publisher");  
-      if( myPublisher != null ){        
-          parent.removeView( myPublisher.mView );
+      if( myPublisher != null ){                  
          parent.addView(myPublisher.mView );
          logMessage("add publisher");  
       }      
