@@ -180,6 +180,7 @@ public class OpenTokAndroidPlugin extends CordovaPlugin
             try {
                 Log.i(TAG, "updating view in ui runnable" + mProperty.toString());
                 Log.i(TAG, "updating view in ui runnable " + mView.toString());
+                Log.i(TAG, "PART 1");
 
                 // Ratios are index 6 & 7 on TB.updateViews, 8 & 9 on subscribe event, and 9 & 10 on TB.initPublisher
                 int ratioIndex;
