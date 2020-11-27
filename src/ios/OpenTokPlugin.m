@@ -18,7 +18,6 @@
     NSString *apiKey;
     NSString *sessionId;
     NSMutableDictionary *observersDictionary;
-    Boolean statusBarPlugin;
 }
 
 @synthesize exceptionId;
@@ -30,7 +29,6 @@
     [self.webView setOpaque:false];
     [self.webView setBackgroundColor:UIColor.clearColor];
 
-    statusBarPlugin = true;
     callbackList = [[NSMutableDictionary alloc] init];
 }
 - (void)addEvent:(CDVInvokedUrlCommand*)command{
@@ -59,7 +57,7 @@
     [payload setObject:@"3.4.3" forKey:@"cp_version"];
     NSMutableDictionary *logData = [[NSMutableDictionary alloc]init];
     [logData setObject:apiKey forKey:@"partner_id"];
-    [logData setObject:@"2.16.3" forKey:@"build"];
+    [logData setObject:@"2.18.0" forKey:@"build"];
     [logData setObject:@"https://github.com/opentok/cordova-plugin-opentok" forKey:@"source"];
     [logData setObject:@"info" forKey:@"payload_type"];
     [logData setObject:payload forKey:@"payload"];
@@ -83,24 +81,12 @@
 
 // Called by TB.initsession()
 -(void)initSession:(CDVInvokedUrlCommand*)command{
-    NSLog(@"Creating new session with data: %@", command.arguments);
     // Get Parameters
     apiKey = [command.arguments objectAtIndex:0];
     sessionId = [command.arguments objectAtIndex:1];
-    BOOL *whitelist = [[command.arguments objectAtIndex:2] boolValue];
-    id proxyUrl = [command.arguments objectAtIndex:3];
-
-    // OTSessionSettings
-    OTSessionSettings* _sessionSettings = [[OTSessionSettings alloc] init];
-    if (whitelist != nil) {
-        _sessionSettings.ipWhitelist = whitelist;
-    }
-    if (proxyUrl != [NSNull null]) {
-        _sessionSettings.proxyURL = (NSString *)proxyUrl;
-    }
 
     // Create Session
-    _session = [[OTSession alloc] initWithApiKey: apiKey sessionId:sessionId delegate:self settings: _sessionSettings];
+    _session = [[OTSession alloc] initWithApiKey: apiKey sessionId:sessionId delegate:self];
 
     // Initialize Dictionary, contains DOM info for every stream
     subscriberDictionary = [[NSMutableDictionary alloc] init];
@@ -120,7 +106,7 @@
     NSLog(@"iOS creating Publisher");
     /* properties: [name, position.top, position.left, width, height, zIndex,
         publishAudio, publishVideo, cameraName, ratios.widthRatio, ratios.heightRatio,
-        audioFallbackEnabled, audioBitrate, audioSource, videoSource, frameRate, cameraResolution, fitMode]
+        audioFallbackEnabled, audioBitrate, audioSource, videoSource, frameRate, cameraResolution]
     */
     // initialize publisher settings
     OTPublisherSettings * _publisherSettings = [[OTPublisherSettings alloc] init];
@@ -131,7 +117,6 @@
     BOOL bpubVideoTrack;
     enum OTCameraCaptureFrameRate finalCameraFrameRate;
     enum OTCameraCaptureResolution finalCameraResolution;
-    enum OTVideoViewScaleBehavior finalFitMode;
 
     // Get Parameters
     NSString* name = [command.arguments objectAtIndex:0];
@@ -149,7 +134,6 @@
     NSString* audioTrack = [command.arguments objectAtIndex: 13];
     NSString* videoTrack = [command.arguments objectAtIndex: 14];
     NSString* cameraResolution = [command.arguments objectAtIndex: 16];
-    NSString* fitMode = [command.arguments objectAtIndex: 17];
 
     // Sanitize publisher properties
     if ([cameraResolution isEqualToString:@"1280x720"]) {
@@ -167,12 +151,6 @@
       finalCameraFrameRate = OTCameraCaptureFrameRate1FPS;
     } else {
       finalCameraFrameRate = OTCameraCaptureFrameRate30FPS;
-    }
-
-    if ([fitMode isEqualToString:@"contain"]) {
-        finalFitMode = OTVideoViewScaleBehaviorFit;
-    } else {
-        finalFitMode = OTVideoViewScaleBehaviorFill;
     }
 
     bpubAudio = [publishAudio isEqualToString:@"false"] ? NO : YES;
@@ -195,10 +173,8 @@
     [_publisher setPublishAudio:bpubAudio];
     [_publisher setPublishVideo:bpubVideo];
     [_publisher setAudioFallbackEnabled:baudioFallbackEnabled];
-    [_publisher setViewScaleBehavior:finalFitMode];
-    [self.webView.superview addSubview:_publisher.view];
-
-    [self setPosition: @"TBPublisher" top: top left: left width: width height: height];
+    [self.webView.scrollView addSubview:_publisher.view];
+    [_publisher.view setFrame:CGRectMake(left, top, width, height)];
 
     // Set depth location of camera view based on CSS z-index.
     _publisher.view.layer.zPosition = zIndex;
@@ -220,11 +196,9 @@
     int width = [[command.arguments objectAtIndex:3] intValue];
     int height = [[command.arguments objectAtIndex:4] intValue];
     int zIndex = [[command.arguments objectAtIndex:5] intValue];
-
     if ([sid isEqualToString:@"TBPublisher"]) {
         NSLog(@"The Width is: %d", width);
-        // Reposition the video feeds!
-        [self setPosition: sid top: top left: left width: width height: height];
+        _publisher.view.frame = CGRectMake(left, top, width, height);
 
         // Set depth location of camera view based on CSS z-index.
         _publisher.view.layer.zPosition = zIndex;
@@ -232,7 +206,10 @@
         // If the zIndex is 0(default) bring the view to the top, last one wins.
         // See: https://github.com/saghul/cordova-plugin-iosrtc/blob/5b6a180b324c8c9bac533fa481a457b74183c740/src/PluginMediaStreamRenderer.swift#L191
         if(zIndex == 0) {
-            [self.webView.superview bringSubviewToFront:_publisher.view];
+            [self.webView.scrollView bringSubviewToFront:_publisher.view];
+        }
+        if(zIndex < 0) {
+            _publisher.view.userInteractionEnabled = NO;
         }
     }
 
@@ -241,7 +218,7 @@
 
     if (streamInfo) {
         // Reposition the video feeds!
-        [self setPosition: sid top: top left: left width: width height: height];
+        streamInfo.view.frame = CGRectMake(left, top, width, height);
 
         // Set depth location of camera view based on CSS z-index.
         streamInfo.view.layer.zPosition = zIndex;
@@ -249,7 +226,10 @@
         // If the zIndex is 0(default) bring the view to the top, last one wins.
         // See: https://github.com/saghul/cordova-plugin-iosrtc/blob/5b6a180b324c8c9bac533fa481a457b74183c740/src/PluginMediaStreamRenderer.swift#L191
         if(zIndex == 0) {
-            [self.webView.superview bringSubviewToFront:_publisher.view];
+            [self.webView.scrollView bringSubviewToFront:_publisher.view];
+        }
+        if(zIndex < 0) {
+            streamInfo.view.userInteractionEnabled = NO;
         }
     }
 
@@ -257,35 +237,6 @@
     [callbackResult setKeepCallbackAsBool:YES];
     //[self.commandDelegate sendPluginResult:callbackResult toSuccessCallbackString:command.callbackId];
     [self.commandDelegate sendPluginResult:callbackResult callbackId:command.callbackId];
-}
-- (void)hasStatusBarPlugin:(CDVInvokedUrlCommand*)command{
-    statusBarPlugin = [[command.arguments objectAtIndex:0] boolValue];
-}
-- (void)updateCamera:(CDVInvokedUrlCommand*)command{
-    NSString* sid = [command.arguments objectAtIndex:0];
-    int top = [[command.arguments objectAtIndex:1] intValue];
-    int left = [[command.arguments objectAtIndex:2] intValue];
-    int width = [[command.arguments objectAtIndex:3] intValue];
-    int height = [[command.arguments objectAtIndex:4] intValue];
-
-    [self setPosition: sid top: top left: left width: width height: height];
-}
-- (void)setPosition:(NSString*)sid top:(int)top left:(int)left width:(int)width height:(int)height {
-    int offsetTop = 20;
-    if (statusBarPlugin) {
-        // We set the offsetTop to the top position of the webView because the StatusBarPlugin changes the top position to the proper offset.
-        offsetTop = self.webView.frame.origin.y;
-    } else if ([UIApplication sharedApplication].isStatusBarHidden) {
-        offsetTop = 0;
-    }
-
-    CGRect frame = CGRectMake(left, top + offsetTop, width, height);
-    if ([sid isEqualToString:@"TBPublisher"]) {
-        _publisher.view.frame = frame;
-    } else {
-        OTSubscriber* streamInfo = [subscriberDictionary objectForKey:sid];
-        streamInfo.view.frame = frame;
-    }
 }
 
 // Helper function to get the base64 image of a view
@@ -295,7 +246,7 @@
     NSString *encodedString = [imageData base64EncodedStringWithOptions:0 ];
     return [NSString stringWithFormat:@"data:image/png;base64,%@",encodedString];
 }
-
+    
 
 #pragma mark Publisher Methods
 - (void)publishAudio:(CDVInvokedUrlCommand*)command{
@@ -340,29 +291,27 @@
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
-
-// client#823
-//- (void)getImgData:(CDVInvokedUrlCommand*)command{
-//    NSString* sid = [command.arguments objectAtIndex:0];
-//    NSString *snapshot;
-//    OTSubscriber * subscriber;
-//
-//    if ([sid isEqualToString:@"TBPublisher"]) {
-//        if (_publisher.view) {
-//            snapshot = [self getBase64PNGFromUIView: _publisher.view];
-//        }
-//    } else {
-//        subscriber = [subscriberDictionary objectForKey:sid];
-//        if (subscriber) {
-//            snapshot = [self getBase64PNGFromUIView: subscriber.view];
-//        }
-//    }
-//
-//    CDVPluginResult* callbackResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-//                                                        messageAsString: snapshot];
-//    [callbackResult setKeepCallbackAsBool:YES];
-//    [self.commandDelegate sendPluginResult:callbackResult callbackId:command.callbackId];
-//}
+- (void)getImgData:(CDVInvokedUrlCommand*)command{
+    NSString* sid = [command.arguments objectAtIndex:0];
+    NSString *snapshot;
+    OTSubscriber * subscriber;
+    
+    if ([sid isEqualToString:@"TBPublisher"]) {
+        if (_publisher.view) {
+            snapshot = [self getBase64PNGFromUIView: _publisher.view];
+        }
+    } else {
+        subscriber = [subscriberDictionary objectForKey:sid];
+        if (subscriber) {
+            snapshot = [self getBase64PNGFromUIView: subscriber.view];
+        }
+    }
+    
+    CDVPluginResult* callbackResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                        messageAsString: snapshot];
+    [callbackResult setKeepCallbackAsBool:YES];
+    [self.commandDelegate sendPluginResult:callbackResult callbackId:command.callbackId];
+}
 
 #pragma mark Subscriber Methods
 - (void)subscribeToAudio:(CDVInvokedUrlCommand*)command{
@@ -392,6 +341,8 @@
     }
 }
 
+
+
 #pragma mark Session Methods
 - (void)connect:(CDVInvokedUrlCommand *)command{
     NSLog(@"iOS Connecting to Session");
@@ -407,8 +358,11 @@
         [err setObject:error.localizedDescription forKey:@"message"];
         [err setObject:code forKey:@"code"];
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:err];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+
 }
 
 // Called by session.disconnect()
@@ -440,8 +394,6 @@
 - (void)subscribe:(CDVInvokedUrlCommand*)command{
     NSLog(@"iOS subscribing to stream");
 
-    enum OTVideoViewScaleBehavior finalFitMode;
-
     // Get Parameters
     NSString* sid = [command.arguments objectAtIndex:0];
 
@@ -451,7 +403,6 @@
     int width = [[command.arguments objectAtIndex:3] intValue];
     int height = [[command.arguments objectAtIndex:4] intValue];
     int zIndex = [[command.arguments objectAtIndex:5] intValue];
-    NSString* fitMode = [command.arguments objectAtIndex: 10];
 
     // Acquire Stream, then create a subscriber object and put it into dictionary
     OTStream* myStream = [streamDictionary objectForKey:sid];
@@ -459,13 +410,6 @@
     sub.audioLevelDelegate = self;
     sub.networkStatsDelegate = self;
     [_session subscribe:sub error:nil];
-
-    if ([fitMode isEqualToString:@"contain"]) {
-        finalFitMode = OTVideoViewScaleBehaviorFit;
-    } else {
-        finalFitMode = OTVideoViewScaleBehaviorFill;
-    }
-    [sub setViewScaleBehavior:finalFitMode];
 
     if ([[command.arguments objectAtIndex:6] isEqualToString:@"false"]) {
         [sub setSubscribeToAudio: NO];
@@ -480,7 +424,7 @@
     // Set depth location of camera view based on CSS z-index.
     sub.view.layer.zPosition = zIndex;
 
-    [self.webView.superview addSubview:sub.view];
+    [self.webView.scrollView addSubview:sub.view];
 
     // Return to JS event handler
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];

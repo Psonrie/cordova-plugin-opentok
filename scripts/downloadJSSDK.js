@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 module.exports = function (context) {
-    var jsSDKVersion = "v2.17.3";
+    var jsSDKVersion = "v2.18.0";
     var downloadFile = require('./downloadFile.js'),
         Q = require('q'),
         deferral = new Q.defer();
