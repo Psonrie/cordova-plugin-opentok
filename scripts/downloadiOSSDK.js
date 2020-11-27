@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 module.exports = function (context) {
     var IosSDKVersion = "OpenTok-iOS-2.18.0";
